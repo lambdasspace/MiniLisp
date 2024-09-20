@@ -18,16 +18,19 @@ import Data.Char
       '('             { TokenPA }
       ')'             { TokenPC }
       let             { TokenLet }
+      lambda          { TokenLambda }
 
 %%
 
-ASA : var                             { Id $1 }
-    | int                             { Num $1 }
-    | bool                            { Boolean $1 }
-    | '(' '+' ASA ASA ')'             { Add $3 $4}
-    | '(' '-' ASA ASA ')'             { Sub $3 $4}
-    | '(' "not" ASA ')'               { Not $3 }
-    | '(' let '(' var ASA ')' ASA ')' { Let $4 $5 $7 }
+SASA : var                               { IdS $1 }
+     | int                               { NumS $1 }
+     | bool                              { BooleanS $1 }
+     | '(' '+' SASA SASA ')'             { AddS $3 $4}
+     | '(' '-' SASA SASA ')'             { SubS $3 $4}
+     | '(' "not" SASA ')'                { NotS $3 }
+     | '(' let '(' var SASA ')' SASA ')' { LetS $4 $5 $7 }
+     | '(' lambda '(' var ')' SASA ')'   { FunS $4 $6 }
+     | '(' SASA SASA ')'                 { AppS $2 $3 }
 
 {
 
@@ -35,13 +38,15 @@ parseError :: [Token] -> a
 parseError _ = error "Parse error"
 
 
-data ASA = Id String
-          | Num Int
-          | Boolean Bool
-          | Add ASA ASA
-          | Sub ASA ASA
-          | Not ASA
-          | Let String ASA ASA
+data SASA = IdS String
+          | NumS Int
+          | BooleanS Bool
+          | AddS SASA SASA
+          | SubS SASA SASA
+          | NotS SASA
+          | LetS String SASA SASA
+          | FunS String SASA
+          | AppS SASA SASA 
           deriving(Show)
 
 data Token = TokenId String
@@ -53,6 +58,7 @@ data Token = TokenId String
            | TokenPA
            | TokenPC
            | TokenLet
+           | TokenLambda
            deriving(Show)
 
 lexer :: String -> [Token]
@@ -66,6 +72,7 @@ lexer ('n':'o':'t':xs) = TokenNot:(lexer xs)
 lexer ('#':'t':xs) = (TokenBool True):(lexer xs)
 lexer ('#':'f':xs) = (TokenBool False):(lexer xs)
 lexer ('l':'e':'t':xs) = TokenLet:(lexer xs)
+lexer ('l':'a':'m':'b':'d':'a':xs) = TokenLambda:(lexer xs)
 lexer (x:xs)
     | isDigit x = lexNum (x:xs)
     | isAlpha x = lexAlph (x:xs)
