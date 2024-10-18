@@ -19,3 +19,7 @@
 - [MiniLisp v4.1](MINILISP04/01SUSTEP) (Sustitución y evaluación perezosa)
 - [MiniLisp v4.2](MINILISP04/02ENVEEP) (Ambientes y evaluación perezosa)
 - [MiniLisp v4.3](MiniLISP04/03ENVEEPPE) (Condicional if0 con ambientes, evaluación perezosa y puntos estrictos)
+
+### Recursión 
+
+- [MiniLisp v5](MINILISP05) (Expresiones `letrec` mediante Combinador Y)
