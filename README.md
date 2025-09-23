@@ -1,5 +1,7 @@
 # MiniLisp
 
+Manuel Soto Romero
+
 This repository documents the incremental design and implementation of **MiniLisp**, a pedagogical programming language conceived to explore fundamental concepts in programming language theory. Each version introduces new expressive capabilities, ranging from arithmetic and boolean expressions to continuations.
 
 The project follows the pedagogical approach of the **first edition of *Programming Languages: Application and Interpretation* (PLAI)** by Shriram Krishnamurthi, while using **Haskell** as the host language. The choice of Haskell provides a precise functional framework for expressing interpreters and semantic definitions, reinforcing theoretical connections to substitution, evaluation strategies, and higher-order functions.
