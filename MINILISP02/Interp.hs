@@ -2,14 +2,27 @@ module Interp where
 
 import Grammars
 
+smallStep :: ASA -> ASA
+smallStep (Id i) = error "Variable libre"
+smallStep (Num n) = (Num n)
+smallStep (Boolean b) = (Boolean b)
+smallStep (Add (Num i) (Num d)) = Num (i + d)
+smallStep (Add (Num i) d) = Add (Num i) (smallStep d)
+smallStep (Add i d) = Add (smallStep i) d
+smallStep (Sub (Num i) (Num d)) = Num (i - d)
+smallStep (Sub (Num i) d) = Sub (Num i) (smallStep d)
+smallStep (Sub i d) = Sub (smallStep i) d
+smallStep (Not (Boolean b)) = Boolean (not b)
+smallStep (Not e) = Not (smallStep e)
+smallStep (Let i v b)
+  | esValor v = sust b i v
+  | otherwise = Let i (smallStep v) b
+
 interp :: ASA -> ASA
 interp (Id i) = error "Variable libre"
 interp (Num n) = (Num n)
-interp (Boo b) = (Boolean b)
-interp (Add i d) = Num ((numN (interp i)) + (numN (interp d)))
-interp (Sub i d) = Num ((numN (interp i)) - (numN (interp d)))
-interp (Not e) = Boolean (not (boolN (interp e)))
-interp (Let i v c) = interp (sust c i (interp v))
+interp (Boolean b) = (Boolean b)
+interp e = interp (smallStep e)
 
 numN :: ASA -> Int
 numN (Num n) = n
@@ -17,6 +30,11 @@ numN (Num n) = n
 boolN :: ASA -> Bool
 boolN (Boolean b) = b
 boolN _ = False
+
+esValor :: ASA -> Bool
+esValor (Num _) = True
+esValor (Boolean _) = True
+esValor _ = False
 
 sust :: ASA -> String -> ASA -> ASA
 sust (Num n) i v = Num n
