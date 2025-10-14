@@ -2,16 +2,33 @@ module InterpSust where
 
 import Desugar
 
+smallStep :: ASA -> ASA
+smallStep (Id i) = error "Variable libre"
+smallStep (Num n) = (Num n)
+smallStep (Boolean b) = (Boolean b)
+smallStep (Add (Num i) (Num d)) = Num (i + d)
+smallStep (Add (Num i) d) = Add (Num i) (smallStep d)
+smallStep (Add i d) = Add (smallStep i) d
+smallStep (Sub (Num i) (Num d)) = Num (i - d)
+smallStep (Sub (Num i) d) = Sub (Num i) (smallStep d)
+smallStep (Sub i d) = Sub (smallStep i) d
+smallStep (Not (Boolean b)) = Boolean (not b)
+smallStep (Not e) = Not (smallStep e)
+smallStep (Fun p c) = Fun p c
+smallStep (App (Fun p c) a)
+    | isValue a = sust c p a
+    | otherwise = App (Fun p c) (smallStep a)
+
+isValue :: ASA -> Bool
+isValue (Num n) = True
+isValue (Boolean b) = True
+isValue (Fun p c) = True
+isValue _ = False
+
 interp :: ASA -> ASA
-interp (Id i) = error "Variable libre"
-interp (Num n) = (Num n)
-interp (Boolean b) = (Boolean b)
-interp (Add i d) = Num ((numN (interp i)) + (numN (interp d)))
-interp (Sub i d) = Num ((numN (interp i)) - (numN (interp d)))
-interp (Not e) = Boolean (not (boolN (interp e)))
-interp (Fun p c) = Fun p c
-interp (App f a) = let funVal = interp f in
-                      interp (sust (funC funVal) (funP funVal) (interp a))
+interp e
+    | isValue e = e
+    | otherwise = interp (smallStep e)
 
 numN :: ASA -> Int
 numN (Num n) = n

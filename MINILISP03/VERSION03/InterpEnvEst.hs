@@ -2,42 +2,71 @@ module InterpEnvEst where
 
 import Desugar
 
-type Env = [(String, Value)]
+type Env = [(String, ASAValues)]
 
-data Value = NumV Int
-           | BooleanV Bool
-           | ClosureV String ASA Env
+smallStep :: ASAValues -> Env -> (ASAValues, Env)
+smallStep (IdV i) env = (lookupEnv i env, env)
+smallStep (NumV n) env = (NumV n, env)
+smallStep (BooleanV b) env = (BooleanV b, env)
+smallStep (AddV (NumV n) (NumV m)) env = (NumV (n + m), env)
+smallStep (AddV (NumV n) d) env =
+  let (d', env') = smallStep d env
+   in (AddV (NumV n) d', env')
+smallStep (AddV d1 d2) env =
+  let (d1', env') = smallStep d1 env
+   in (AddV d1' d2, env')
+smallStep (SubV (NumV n) (NumV m)) env = (NumV (n - m), env)
+smallStep (SubV (NumV n) d) env =
+  let (d', env') = smallStep d env
+   in (SubV (NumV n) d', env')
+smallStep (SubV d1 d2) env =
+  let (d1', env') = smallStep d1 env
+   in (SubV d1' d2, env')
+smallStep (NotV (BooleanV b)) env = (BooleanV (not b), env)
+smallStep (NotV d) env =
+  let (d', env') = smallStep d env
+   in (NotV d', env')
+smallStep (FunV p c) env = (ClosureV p c env, env)
+smallStep (AppV (ClosureV p c e) a) env
+  | isValueV a = (c, (p, a) : e)
+  | otherwise =
+    let (a', env') = smallStep a env
+     in (AppV (ClosureV p c e) a', env')
+smallStep (AppV f a) env =
+  let (f', env') = smallStep f env
+   in (AppV f' a, env')
 
-interp :: ASA -> Env -> Value
-interp (Id i) env = lookupEnv i env
-interp (Num n) env = (NumV n)
-interp (Boolean b) env = (BooleanV b)
-interp (Add i d) env = NumV ((numN (interp i env)) + (numN (interp d env)))
-interp (Sub i d) env = NumV ((numN (interp i env)) - (numN (interp d env)))
-interp (Not e) env  = BooleanV (not (boolN (interp e env)))
-interp (Fun p c) env = ClosureV p c env
-interp (App f a) env =
-  let funVal = interp f env
-   in interp (closureC funVal) (((closureP funVal),(interp a env)):(closureE funVal))
+interp :: ASAValues -> Env -> ASAValues
+interp e env
+  | isValueV e = e
+  | otherwise =
+    let (e', env') = smallStep e env
+     in interp e' env'
 
-lookupEnv :: String -> Env -> Value
-lookupEnv i [] = error ("Variable libre: " ++ i)
-lookupEnv i ((j, v) : xs)
-   | i == j = v
-   | otherwise = lookupEnv i xs
+isValueV :: ASAValues -> Bool
+isValueV (NumV _) = True
+isValueV (BooleanV _) = True
+isValueV (ClosureV _ _ _) = True
+isValueV _ = False
 
-numN :: Value -> Int
+lookupEnv :: String -> Env -> ASAValues
+lookupEnv i [] = error ("Variable " ++ i ++ " not found")
+lookupEnv i ((j, v) : env)
+  | i == j = v
+  | otherwise = lookupEnv i env
+
+numN :: ASAValues -> Int
 numN (NumV n) = n
 
-boolN :: Value -> Bool
+boolN :: ASAValues -> Bool
 boolN (BooleanV b) = b
 boolN _ = False
 
-closureP :: Value -> String
+closureP :: ASAValues -> String
 closureP (ClosureV p _ _) = p
 
-closureC :: Value -> ASA
+closureC :: ASAValues -> ASAValues
 closureC (ClosureV _ c _) = c
 
-closureE :: Value -> Env
+closureE :: ASAValues -> Env
 closureE (ClosureV _ _ e) = e

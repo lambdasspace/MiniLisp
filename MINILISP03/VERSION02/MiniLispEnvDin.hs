@@ -1,5 +1,6 @@
 module REPL where
 
+import Lex
 import Desugar
 import Grammars
 import InterpEnvDin
@@ -31,5 +32,5 @@ repl =
 -- Función principal. Da la bienvenida al usuario y ejecuta el REPL.
 run =
   do
-    putStrLn "Mini-Lisp v1.0. Bienvenidx."
+    putStrLn "Mini-Lisp v3.2. Bienvenidx."
     repl
