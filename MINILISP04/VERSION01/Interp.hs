@@ -16,6 +16,7 @@ smallStep (Not (Boolean b)) = Boolean (not b)
 smallStep (Not e) = Not (smallStep e)
 smallStep (Fun p c) = Fun p c
 smallStep (App (Fun p c) a) = sust c p a
+smallStep (App f a) = App (smallStep f) a
 
 isValue :: ASA -> Bool
 isValue (Num n) = True
