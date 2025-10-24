@@ -12,7 +12,21 @@ data ASA
   | If0 ASA ASA ASA
   | Fun String ASA
   | App ASA ASA
-  deriving (Eq,Show)
+  deriving (Show)
+
+data ASAValues
+  = IdV String
+  | NumV Int
+  | BooleanV Bool
+  | AddV ASAValues ASAValues
+  | SubV ASAValues ASAValues
+  | NotV ASAValues
+  | If0V ASAValues ASAValues ASAValues
+  | FunV String ASAValues
+  | ExprV ASAValues [(String, ASAValues)]
+  | ClosureV String ASAValues [(String, ASAValues)]
+  | AppV ASAValues ASAValues
+  deriving (Show)
 
 desugar :: SASA -> ASA
 desugar (IdS i) = Id i
@@ -25,3 +39,14 @@ desugar (LetS p v c) = App (Fun p (desugar c)) (desugar v)
 desugar (If0S c t e) = If0 (desugar c) (desugar t) (desugar e)
 desugar (FunS p c) = Fun p (desugar c)
 desugar (AppS f a) = App (desugar f) (desugar a)
+
+desugarV :: ASA -> ASAValues
+desugarV (Id i) = IdV i
+desugarV (Num n) = NumV n
+desugarV (Boolean b) = BooleanV b
+desugarV (Add i d) = AddV (desugarV i) (desugarV d)
+desugarV (Sub i d) = SubV (desugarV i) (desugarV d)
+desugarV (Not e) = NotV (desugarV e)
+desugarV (If0 c t e) = If0V (desugarV c) (desugarV t) (desugarV e)
+desugarV (Fun p c) = FunV p (desugarV c)
+desugarV (App f a) = AppV (desugarV f) (desugarV a)

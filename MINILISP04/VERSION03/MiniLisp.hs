@@ -1,15 +1,15 @@
 module REPL where
 
+import Lex
 import Desugar
 import Grammars
 import Interp
 
-saca :: Value -> String
+saca :: ASAValues -> String
 saca (NumV n) = show n
 saca (BooleanV b)
   | b == True = "#t"
   | otherwise = "#f"
-saca (ExprV a e) = "#<expresion>"
 saca (ClosureV p c e) = "#<procedure>"
 
 -- Función encargada de llevar la ejecución del programa mediante los siguientes pasos:
@@ -26,11 +26,16 @@ repl =
     if str == "(exit)"
       then putStrLn "Bye."
       else do
-        putStrLn $ saca (strict (interp (desugar (parse (lexer str))) []))
+        putStrLn $ saca (interp (desugarV (desugar (parse (lexer str)))) [])
         repl
 
 -- Función principal. Da la bienvenida al usuario y ejecuta el REPL.
 run =
   do
-    putStrLn "Mini-Lisp v1.0. Bienvenidx."
+    putStrLn "Mini-Lisp v4.3. Bienvenidx."
     repl
+
+test x = putStrLn $ saca (interp (desugarV (desugar (parse (lexer x)))) [])
+test1 = test "(let (a (+ 4 4)) (let (b (+ a a)) (let (a (+ 3 3)) (if0 b 1 2))))"
+test2 = test "(let (a (+ 4 4)) (let (b (+ a a)) (let (a (- 3 3)) (if0 b 1 2))))"
+
