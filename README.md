@@ -6,6 +6,8 @@ This repository documents the incremental design and implementation of **MiniLis
 
 The project follows the pedagogical approach of the **first edition of *Programming Languages: Application and Interpretation* (PLAI)** by Shriram Krishnamurthi, while using **Haskell** as the host language. The choice of Haskell provides a precise functional framework for expressing interpreters and semantic definitions, reinforcing theoretical connections to substitution, evaluation strategies, and higher-order functions.
 
+Another **substantial difference** with respect to *PLAI* is that **MiniLisp adopts a structural operational semantics** instead of a natural semantics. This choice emphasizes the step-by-step reduction process of program evaluation, making explicit the intermediate computation states and transitions that occur during execution. Such an approach facilitates the study of **small-step semantics** and its relationship to implementation techniques such as abstract machines.
+
 ## Repository Contents
 
 ### Arithmetic and Boolean Expressions
