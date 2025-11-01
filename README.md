@@ -33,7 +33,7 @@ Another **substantial difference** with respect to *PLAI* is that **MiniLisp ado
 ### Recursion
 
 * [MiniLisp v5.1](MINILISP06/version01) - Recursive definitions via `letrec`, implemented through the Y Combinator with lazy evaluation.
-* [MiniLisp v5](MINILISP05/version02) — Recursive definitions via `letrec`, implemented through the Z Combinator.
+* [MiniLisp v5.2](MINILISP05/version02) — Recursive definitions via `letrec`, implemented through the Z Combinator with eager evaluation.
 
 ### Continuations
 
