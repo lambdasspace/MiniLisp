@@ -1,7 +1,8 @@
 {
 module Grammars where
 
-import Data.Char
+import Lex (Token(..),lexer)
+
 }
 
 %name parse
@@ -14,97 +15,58 @@ import Data.Char
       bool            { TokenBool $$ }
       '+'             { TokenSuma }
       '-'             { TokenResta }
+      '*'             { TokenMult }
+      "<="            { TokenLeq }
       "not"           { TokenNot }
-      '<'             { TokenLT }
       '('             { TokenPA }
       ')'             { TokenPC }
       let             { TokenLet }
       letrec          { TokenLetRec }
-      lambda          { TokenLambda }
       if0             { TokenIf0 }
       if              { TokenIf }
+      lambda          { TokenLambda }
 
 %%
 
-SASA : var                                  { IdS $1 }
-     | int                                  { NumS $1 }
-     | bool                                 { BooleanS $1 }
-     | '(' '+' SASA SASA ')'                { AddS $3 $4}
-     | '(' '-' SASA SASA ')'                { SubS $3 $4}
-     | '(' "not" SASA ')'                   { NotS $3 }
-     | '(' '<' SASA SASA ')'                { LTS $3 $4 }
-     | '(' let '(' var SASA ')' SASA ')'    { LetS $4 $5 $7 }
-     | '(' letrec '(' var SASA ')' SASA ')' { LetRecS $4 $5 $7 }
-     | '(' if0 SASA SASA SASA ')'           { If0S $3 $4 $5 }
-     | '(' if SASA SASA SASA ')'            { IfS $3 $4 $5 }
-     | '(' lambda '(' var ')' SASA ')'      { FunS $4 $6 }
-     | '(' SASA SASA ')'                    { AppS $2 $3 }
+SASA : var                                 { IdS $1 }
+     | int                                 { NumS $1 }
+     | bool                                { BooleanS $1 }
+
+     | '(' '+'   SASA SASA ')'             { AddS $3 $4 }
+     | '(' '-'   SASA SASA ')'             { SubS $3 $4 }
+     | '(' '*'   SASA SASA ')'             { MulS $3 $4 }
+     | '(' "<="  SASA SASA ')'             { LeqS $3 $4 }
+
+     | '(' "not" SASA ')'                  { NotS $3 }
+
+     | '(' let    '(' var SASA ')' SASA ')'    { LetS    $4 $5 $7 }
+     | '(' letrec '(' var SASA ')' SASA ')'    { LetRecS $4 $5 $7 }
+
+     | '(' if0 SASA SASA SASA ')'          { If0S $3 $4 $5 }
+     | '(' if  SASA SASA SASA ')'          { IfS  $3 $4 $5 }
+
+     | '(' lambda '(' var ')' SASA ')'     { FunS $4 $6 }
+
+     | '(' SASA SASA ')'                   { AppS $2 $3 }
 
 {
 
 parseError :: [Token] -> a
 parseError _ = error "Parse error"
 
-
 data SASA = IdS String
           | NumS Int
           | BooleanS Bool
           | AddS SASA SASA
           | SubS SASA SASA
+          | MulS SASA SASA
+          | LeqS SASA SASA
           | NotS SASA
-          | LTS SASA SASA
           | LetS String SASA SASA
           | LetRecS String SASA SASA
           | If0S SASA SASA SASA
-          | IfS SASA SASA SASA
+          | IfS  SASA SASA SASA
           | FunS String SASA
           | AppS SASA SASA 
           deriving(Show)
-
-data Token = TokenId String
-           | TokenNum Int
-           | TokenBool Bool
-           | TokenSuma
-           | TokenResta
-           | TokenNot
-           | TokenLT
-           | TokenPA
-           | TokenPC
-           | TokenLet
-           | TokenLetRec
-           | TokenIf0
-           | TokenIf
-           | TokenLambda
-           deriving(Show)
-
-lexer :: String -> [Token]
-lexer [] = []
-lexer (' ' : xs) = lexer xs
-lexer ('(' : xs) = TokenPA:(lexer xs)
-lexer (')' : xs) = TokenPC:(lexer xs)
-lexer ('+' : xs) = TokenSuma:(lexer xs)
-lexer ('-' : xs) = TokenResta:(lexer xs)
-lexer ('<':xs) = TokenLT:(lexer xs)
-lexer ('n':'o':'t':xs) = TokenNot:(lexer xs)
-lexer ('#':'t':xs) = (TokenBool True):(lexer xs)
-lexer ('#':'f':xs) = (TokenBool False):(lexer xs)
-lexer ('l':'e':'t':'r':'e':'c':xs) = TokenLetRec:(lexer xs)
-lexer ('l':'e':'t':xs) = TokenLet:(lexer xs)
-lexer ('i':'f':'0':xs) = TokenIf0:(lexer xs)
-lexer ('i':'f':xs) = TokenIf:(lexer xs)
-lexer ('l':'a':'m':'b':'d':'a':xs) = TokenLambda:(lexer xs)
-lexer (x:xs)
-    | isDigit x = lexNum (x:xs)
-    | isAlpha x = lexAlph (x:xs)
-
-lexNum :: String -> [Token]
-lexNum cs = TokenNum (read num) : lexer rest
-      where (num,rest) = span isDigit cs
-
-lexAlph :: String -> [Token]
-lexAlph cs = TokenId var : lexer rest
-      where (var,rest) = span isAlpha cs
-
-main = getContents >>= print . parse . lexer
-
 }

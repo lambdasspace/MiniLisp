@@ -1,41 +1,57 @@
 module REPL where
 
+import Lex
 import Desugar
 import Grammars
 import Interp
 
+-- Combinador Z (orden aplicativa / ansiosa)
 combinadorZ :: String
-combinadorZ = "(lambda (f) ((lambda (x) (f (lambda (u) ((x x) u)))) (lambda (x) (f (lambda (u) ((x x) u))))))"
+combinadorZ =
+  "(lambda (f)                                   \
+  \  ((lambda (x)                                \
+  \      (f (lambda (v) ((x x) v))))             \
+  \   (lambda (x)                                \
+  \      (f (lambda (v) ((x x) v))))))"
 
-z :: Value
-z = interp (desugar $ parse $ lexer combinadorZ) []
+-- Valor de Z ya desazucarado y evaluado en []
+z :: ASAValues
+z =
+  let sasa = parse (lexer combinadorZ)  -- SASA
+      asa  = desugar sasa               -- ASA
+  in interp (desugarV asa) []           -- ASAValues evaluado en []
 
-saca :: Value -> String
-saca (NumV n) = show n
-saca (BooleanV b)
-  | b == True = "#t"
-  | otherwise = "#f"
-saca (ClosureV p c e) = "#<procedure>"
+-- Pretty-printer sencillo (sin ExprV en la versión ansiosa)
+saca :: ASAValues -> String
+saca (NumV n)           = show n
+saca (BooleanV True)    = "#t"
+saca (BooleanV False)   = "#f"
+saca (ClosureV _ _ _)   = "#<procedure>"
+saca _                  = "#<valor-desconocido>"
 
--- Función encargada de llevar la ejecución del programa mediante los siguientes pasos:
--- 1. Impresión del propt.
--- 2. Lectura de una cadena.
--- 3. Si la cadana es igual a ":q", se cierra el intérprete.
--- 4. En caso contrario, realiza la generación de código ejecutable aplicando los análisis en
---    orden siguiente: léxico, sintáctico, semántico.
--- 5. Vuelve a ejecutar el ciclo.
-repl =
-  do
-    putStr "> "
-    str <- getLine
-    if str == "(exit)"
-      then putStrLn "Bye."
-      else do
-        putStrLn $ saca (interp (desugar (parse (lexer str))) [("Z", z)])
-        repl
+-- Ambiente inicial: ligamos Z; opcionalmente también Y → Z para compatibilidad
+prelude :: Env
+prelude = [("Z", z)]
 
--- Función principal. Da la bienvenida al usuario y ejecuta el REPL.
-run =
-  do
-    putStrLn "Mini-Lisp v1.0. Bienvenidx."
-    repl
+repl :: IO ()
+repl = do
+  putStr "> "
+  str <- getLine
+  if str == "(exit)"
+    then putStrLn "Bye."
+    else do
+      putStrLn $ saca (interp (desugarV (desugar (parse (lexer str)))) prelude)
+      repl
+
+run :: IO ()
+run = do
+  putStrLn "Mini-Lisp (versión ansiosa). Bienvenidx."
+  repl
+
+test :: String -> IO ()
+test x = putStrLn $ saca (interp (desugarV (desugar (parse (lexer x)))) prelude)
+
+-- Pruebas (asumiendo que letrec se desazucara vía Z)
+testSuma       = test "(letrec (sumN (lambda (n) (if0 n 0 (+ n (sumN (- n 1)))))) (sumN 3))"      -- 6
+testFactorial  = test "(letrec (fact (lambda (n) (if (<= n 1) 1 (* n (fact (- n 1)))))) (fact 5))" -- 120
+testFibo       = test "(letrec (fib (lambda (n) (if (<= n 2) n (+ (fib (- n 1)) (fib (- n 2)))))) (fib 5))" -- 5

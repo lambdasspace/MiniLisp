@@ -34,51 +34,7 @@ data ASAValues
   | ExprV ASAValues [(String, ASAValues)]
   | ClosureV String ASAValues [(String, ASAValues)]
   | AppV ASAValues ASAValues
-
-instance Show ASAValues where
-  show (IdV s) = s
-  show (NumV n) = show n
-  show (BooleanV True)  = "#t"
-  show (BooleanV False) = "#f"
-
-  -- Operadores binarios
-  show (AddV e1 e2) = "(+ " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (SubV e1 e2) = "(- " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (MulV e1 e2) = "(* " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (LeqV e1 e2) = "(<= " ++ show e1 ++ " " ++ show e2 ++ ")"
-
-  -- Unarios
-  show (NotV e) = "(not " ++ show e ++ ")"
-
-  -- Condicionales
-  show (If0V c t e) = "(if0 " ++ show c ++ " " ++ show t ++ " " ++ show e ++ ")"
-  show (IfV c t e)  = "(if "  ++ show c ++ " " ++ show t ++ " " ++ show e ++ ")"
-
-  -- Funciones y aplicación
-  show (FunV p c) = "(lambda (" ++ p ++ ") " ++ show c ++ ")"
-  show (AppV f a) = "(" ++ show f ++ " " ++ show a ++ ")"
-
-  -- Expresiones y cierres (para depuración)
-  show (ExprV e env) =
-    "#<expr: " ++ show e ++ ">" --", env=" ++ showEnv env ++ ">"
-  show (ClosureV p c env) =
-    "#<closure: " ++ p ++ "," ++ show c ++ ">"--", env=" ++ showEnv env ++ ">"
-
--- Función auxiliar para mostrar entornos
-showEnv :: [(String, ASAValues)] -> String
-showEnv [] = "[]"
-showEnv env =
-  "[" ++ unwords (map (\(n,v) -> "(" ++ n ++ " " ++ show v ++ ")") env) ++ "]"
-
-
-combY = (FunS "f" 
-             (AppS 
-              (FunS "x" 
-                (AppS (IdS "f") 
-                     (AppS (IdS "x") (IdS "x"))))
-              (FunS "x" 
-                (AppS (IdS "f") 
-                     (AppS (IdS "x") (IdS "x"))))))
+  deriving(Show)
 
 -- Traducción de la sintaxis superficial (SASA del parser) al ASA
 desugar :: SASA -> ASA
@@ -91,7 +47,7 @@ desugar (MulS i d)           = Mul (desugar i) (desugar d)
 desugar (LeqS i d)           = Leq (desugar i) (desugar d)
 desugar (NotS e)             = Not (desugar e)
 desugar (LetS p v c)         = App (Fun p (desugar c)) (desugar v)
-desugar (LetRecS p v c)      = desugar (LetS p (AppS combY (FunS p v)) c)
+desugar (LetRecS p v c)      = desugar (LetS p (AppS (idS "Y") (FunS p v)) c)
 desugar (If0S c t e)         = If0 (desugar c) (desugar t) (desugar e)
 desugar (IfS  c t e)         = If  (desugar c) (desugar t) (desugar e)
 desugar (FunS p c)           = Fun p (desugar c)
