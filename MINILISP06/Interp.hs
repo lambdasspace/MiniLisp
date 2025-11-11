@@ -1,63 +1,137 @@
 module Interp where
 
+import Lex
+import Grammars
 import Desugar
 
-type Env = [(String, Value)]
+import System.IO (hFlush, stdout)
 
-data Value
-  = NumV Int
-  | BooleanV Bool
-  | ClosureV (Value -> (Value -> Value) -> Value)
-  | ContV (Value -> Value)
+type Env = [(String, ASAValues)]
 
-instance Eq Value where
-  NumV x == NumV y = x == y
-  BooleanV x == BooleanV y = x == y
-  _ == _ = False
+-- Usa un "hueco" sintáctico para los marcos
+holeName :: String
+holeName = "___HOLE____"
 
-instance Show Value where
-  show (NumV n) = show n
-  show (BooleanV b) = show b
-  show (ClosureV _) = "<procedure>"
-  show (ContV _) = "<continuation>"
+hole :: ASAValues
+hole = IdV holeName
 
-{-
-ASA = Id String
-  | Num Int
-  | Boolean Bool
-  | Add ASA ASA
-  | Sub ASA ASA
-  | Not ASA
-  | If0 ASA ASA ASA
-  | LetCC String ASA
-  | Fun String ASA
-  | App ASA ASA-}
+-- plug: rellena el hueco por un valor (sustitución estructural)
+plug :: ASAValues -> ASAValues -> ASAValues
+plug (IdV x)             v | x == holeName = v
+plug (IdV x)             _                 = IdV x
+plug (NumV n)            _                 = NumV n
+plug (BooleanV b)        _                 = BooleanV b
+plug (AddV l r)          v                 = AddV (plug l v) (plug r v)
+plug (SubV l r)          v                 = SubV (plug l v) (plug r v)
+plug (NotV x)            v                 = NotV (plug x v)
+plug (If0V c t e)        v                 = If0V (plug c v) (plug t v) (plug e v)
+plug (LetCCV p c)        v                 = LetCCV p (plug c v)
+plug (FunV p c)          v                 = FunV p (plug c v)
+plug (ClosureV p c e)    v                 = ClosureV p (plug c v) e
+plug (AppV f a)          v                 = AppV (plug f v) (plug a v)
+plug (ContV p (b,e,k))   v                 = ContV p (plug b v, e, k)
+plug HaltV               _                 = HaltV
 
-interp :: ASA -> Env -> (Value -> Value) -> Value
-interp (Id i)      e k = k (lookupEnv i e)
-interp (Num n)     _ k = k (NumV n)
-interp (Boolean b) _ k = k (BooleanV b)
-interp (Add i d)   e k = interp i e (\iv -> interp d e (\dv -> k (NumV (numN iv + numN dv))))
-interp (Sub i d)   e k = interp i e (\iv -> interp d e (\dv -> k (NumV (numN iv - numN dv))))
-interp (Not b)     e k = interp b e (\bv -> k (BooleanV (boolN bv)))
-interp (If0 c a b) e k = interp c e (\cv -> if numN cv == 0 then interp a e k else interp b e k) 
-interp (LetCC i c) e k = interp c ((i, ContV k) : e) k
-interp (Fun p c)   e k = k (ClosureV (\av dk -> interp c ((p, av) : e) dk))
-interp (App f a)   e k = interp f e (\fv -> interp a e (\av -> case fv of
-                                                                ClosureV c -> c av k
-                                                                ContV c    -> c av
-                                                                _          -> error "not an applicable value"))
+-- Paso pequeño con continuaciones que cargan un hueco (no un nombre en el env)
+smallStep :: ASAValues -> Env -> ASAValues -> (ASAValues, Env, ASAValues)
 
-lookupEnv :: String -> Env -> Value
-lookupEnv i [] = error ("Variable libre: " ++ i)
-lookupEnv i ((j, v) : xs)
+-- Identificadores (el hueco nunca debe resolverse por ambiente)
+smallStep (IdV i) e k
+  | i == holeName          = error "Hueco sin rellenar en toplevel (bug del intérprete)"
+  | otherwise              = (AppV k (lookupEnv i e), e, k)
+
+-- Números y booleanos
+smallStep (NumV n)     e k = (AppV k (NumV n), e, k)
+smallStep (BooleanV b) e k = (AppV k (BooleanV b), e, k)
+
+-- Sumas
+smallStep (AddV (NumV i) (NumV d)) e k = (AppV k (NumV (i + d)), e, k)
+smallStep (AddV iv@(NumV _) d)     e k = (d, e, ContV "_" (AddV iv hole, e, k))
+smallStep (AddV i d)               e k = (i, e, ContV "_" (AddV hole d, e, k))
+
+-- Restas
+smallStep (SubV (NumV i) (NumV d)) e k = (AppV k (NumV (i - d)), e, k)
+smallStep (SubV iv@(NumV _) d)     e k = (d, e, ContV "_" (SubV iv hole, e, k))
+smallStep (SubV i d)               e k = (i, e, ContV "_" (SubV hole d, e, k))
+
+-- Negación
+smallStep (NotV (BooleanV b)) e k = (AppV k (BooleanV (not b)), e, k)
+smallStep (NotV b)            e k = (b, e, ContV "_" (NotV hole, e, k))
+
+-- If0
+smallStep (If0V (NumV 0) t e2) e k = (t,  e, k)
+smallStep (If0V (NumV _) t e2) e k = (e2, e, k)
+smallStep (If0V c t e2)        e k = (c,  e, ContV "_" (If0V hole t e2, e, k))
+
+-- let/cc: liga p := k en el ambiente actual
+smallStep (LetCCV p c) e k = (c, (p,k):e, k)
+
+-- Funciones y cierres
+smallStep (FunV p c) e k = (AppV k (ClosureV p c e), e, k)
+
+-- Aplicación
+-- a cierre
+smallStep (AppV (ClosureV p c e') a) e k
+  | isValueV a = (c, (p,a):e', k)
+  | otherwise  = (a, e, ContV "_" (AppV (ClosureV p c e') hole, e, k))
+
+-- a continuación capturada: rellenar el hueco en su cuerpo y saltar a k'
+smallStep (AppV (ContV _ (b,e',k')) a) e k
+  | isValueV a = (plug b a, e', k')
+  | otherwise  = (a, e, ContV "_" (AppV (ContV "_" (b,e',k')) hole, e, k))
+
+-- continuación final
+smallStep (AppV HaltV a) e k
+  | isValueV a = (a, e, HaltV)
+  | otherwise  = (a, e, ContV "_" (AppV HaltV hole, e, k))
+
+-- evaluación por defecto: empuja un marco (□ a) para evaluar f primero
+smallStep (AppV f a) e k = (f, e, ContV "_" (AppV hole a, e, k))
+
+-- Interpretación paso a paso (con pausa)
+interp :: ASAValues -> Env -> ASAValues -> ASAValues
+interp e env k  --do
+  -- Mostrar solo la expresión actual
+  --putStrLn (show e)
+
+  -- Esperar al usuario
+  --putStr "Presiona Enter para continuar..."
+  --hFlush stdout   -- Forzar que se imprima antes de esperar input
+  --_ <- getLine
+
+  | isValueV e = e
+    --then pure e
+  | otherwise =
+      let (e1, env1, k1) = smallStep e env k
+      in interp e1 env1 k1
+
+-- Predicados y auxiliares
+isValueV :: ASAValues -> Bool
+isValueV (NumV _)           = True
+isValueV (BooleanV _)       = True
+isValueV (ClosureV _ _ _)   = True
+isValueV (ContV _ _)        = True
+isValueV HaltV              = True
+isValueV _                  = False
+
+lookupEnv :: String -> Env -> ASAValues
+lookupEnv i [] = error ("Variable " ++ i ++ " not found")
+lookupEnv i ((j, v) : env)
   | i == j    = v
-  | otherwise = lookupEnv i xs
+  | otherwise = lookupEnv i env
 
-numN :: Value -> Int
+numN :: ASAValues -> Int
 numN (NumV n) = n
-numN _        = error "Expected a numeric value"
 
-boolN :: Value -> Bool
+boolN :: ASAValues -> Bool
 boolN (BooleanV b) = b
-boolN _            = error "Expected a boolean value"
+boolN _ = False
+
+closureP :: ASAValues -> String
+closureP (ClosureV p _ _) = p
+
+closureC :: ASAValues -> ASAValues
+closureC (ClosureV _ c _) = c
+
+closureE :: ASAValues -> Env
+closureE (ClosureV _ _ e) = e

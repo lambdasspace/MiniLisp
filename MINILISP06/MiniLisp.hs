@@ -1,5 +1,6 @@
-module REPL where
+module MiniLisp where
 
+import Lex
 import Desugar
 import Grammars
 import Interp
@@ -7,16 +8,13 @@ import Interp
 combinadorY :: String
 combinadorY = "(lambda (f) ((lambda (x) (f (x x))) (lambda (x) (f (x x)))))"
 
-y :: Value
-y = interp (desugar $ parse $ lexer combinadorY) [] (\v -> v)
-
-saca :: Value -> String
+saca :: ASAValues -> String
 saca (NumV n) = show n
 saca (BooleanV b)
   | b == True = "#t"
   | otherwise = "#f"
-saca (ClosureV p) = "#<procedure>"
-saca (ContV p) = "#<continuation>"
+saca (ClosureV _ _ _) = "#<procedure>"
+saca (ContV _ _) = "#<continuation>"
 
 -- Función encargada de llevar la ejecución del programa mediante los siguientes pasos:
 -- 1. Impresión del propt.
@@ -32,11 +30,17 @@ repl =
     if str == "(exit)"
       then putStrLn "Bye."
       else do
-        putStrLn $ saca (interp (desugar (parse (lexer str))) [("Y", y)] (\v -> v))
+        putStrLn $ saca (interp (desugarV (desugar (parse (lexer str)))) [] HaltV)
         repl
 
 -- Función principal. Da la bienvenida al usuario y ejecuta el REPL.
 run =
   do
-    putStrLn "Mini-Lisp v1.0. Bienvenidx."
+    putStrLn "Mini-Lisp v6.0. Bienvenidx."
     repl
+
+test :: String -> IO ()
+test x = putStrLn $ saca (interp (desugarV (desugar (parse (lexer x)))) [] HaltV)
+
+-- Pruebas (asumiendo que letrec se desazucara vía Z)
+testLetCC  = test "(+ 1 (+ (let/cc k (k 3)) 3))"      -- 7
