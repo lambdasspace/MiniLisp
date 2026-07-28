@@ -10,7 +10,7 @@ import Lex (Token(..),lexer)
 
 %token 
       var             { TokenId $$ }
-      int             { TokenNum $$ }
+      nat             { TokenNum $$ }
       bool            { TokenBool $$ }
       '+'             { TokenSuma }
       '-'             { TokenResta }
@@ -22,7 +22,7 @@ import Lex (Token(..),lexer)
 %%
 
 ASA : var                             { Id $1 }
-    | int                             { Num $1 }
+    | nat                             { Num $1 }
     | bool                            { Boolean $1 }
     | '(' '+' ASA ASA ')'             { Add $3 $4}
     | '(' '-' ASA ASA ')'             { Sub $3 $4}

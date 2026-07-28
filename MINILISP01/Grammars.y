@@ -9,7 +9,7 @@ import Lex (Token(..), lexer)
 %error { parseError }
 
 %token 
-      int             { TokenNum $$ }
+      nat             { TokenNum $$ }
       bool            { TokenBool $$ }
       '+'             { TokenSuma }
       '-'             { TokenResta }
@@ -19,7 +19,7 @@ import Lex (Token(..), lexer)
 
 %%
 
-ASA : int                      { Num $1 }
+ASA : nat                      { Num $1 }
     | bool                     { Boolean $1 }
     | '(' '+' ASA ASA ')'      { Add $3 $4 }
     | '(' '-' ASA ASA ')'      { Sub $3 $4 }

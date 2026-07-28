@@ -9,6 +9,9 @@ import Data.Char (isSpace)
 --   \x20 = ' ' (space), \x09 = tab, \x0A = LF, \x0D = CR, \x0C = FF, \x0B = VT
 $white = [\x20\x09\x0A\x0D\x0C\x0B]
 $digit = 0-9
+$nonzero = 1-9
+
+@nat = 0 | $nonzero $digit*
 
 tokens :-
 
@@ -24,7 +27,9 @@ tokens :-
   "#t"                  { \_ -> TokenBool True }
   "#f"                  { \_ -> TokenBool False }
 
-  $digit+               { \s -> TokenNum (read s) }
+  0$digit+              { \s -> error ("Lexical error: natural con cero inicial = "
+                                      ++ show s) }
+  @nat                  { \s -> TokenNum (read s) }
 
   -- Catch-all para diagnosticar caracteres inesperados
   .                     { \s -> error ("Lexical error: caracter no reconocido = "

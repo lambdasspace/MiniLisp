@@ -12,32 +12,34 @@ Another **substantial difference** with respect to *PLAI* is that **MiniLisp ado
 
 ### Arithmetic and Boolean Expressions
 
-* [MiniLisp v1](MINILISP01) — Arithmetic and boolean expressions with binary operators.
+* [MiniLisp v1](MINILISP01): Arithmetic and boolean expressions with binary operators.
 
 ### Variables and Substitution
 
-* [MiniLisp v2](MINILISP02) — `let` expressions with substitution-based binding.
+* [MiniLisp v2](MINILISP02): Preserves every construct and semantic rule from
+  v1, and adds identifiers and `let` expressions with substitution-based
+  binding.
 
 ### Functions and Scope
 
-* [MiniLisp v3.1](MINILISP03/VERSION01) — Anonymous functions with substitution under static scope.
-* [MiniLisp v3.2](MINILISP03/VERSION02) — Anonymous functions with environments under dynamic scope.
-* [MiniLisp v3.3](MINILISP03/VERSION03) — Anonymous functions with environments under static scope.
+* [MiniLisp v3.1](MINILISP03/VERSION01): Anonymous functions with substitution under static scope.
+* [MiniLisp v3.2](MINILISP03/VERSION02): Anonymous functions with environments under dynamic scope.
+* [MiniLisp v3.3](MINILISP03/VERSION03): Anonymous functions with environments under static scope.
 
 ### Evaluation Strategies
 
-* [MiniLisp v4.1](MINILISP04/VERSION01) — Substitution semantics with lazy evaluation.
-* [MiniLisp v4.2](MINILISP04/VERSION02) — Environment-based semantics with lazy evaluation.
-* [MiniLisp v4.3](MINILISP04/VERSION03) — `if0` conditional with environments, lazy evaluation, and strictness points.
+* [MiniLisp v4.1](MINILISP04/VERSION01): Substitution semantics with lazy evaluation.
+* [MiniLisp v4.2](MINILISP04/VERSION02): Environment-based semantics with lazy evaluation.
+* [MiniLisp v4.3](MINILISP04/VERSION03): `if0` conditional with environments, lazy evaluation, and strictness points.
 
 ### Recursion
 
-* [MiniLisp v5.1](MINILISP06/version01) — Recursive definitions via `letrec`, implemented through the Y Combinator with lazy evaluation.
-* [MiniLisp v5.2](MINILISP05/version02) — Recursive definitions via `letrec`, implemented through the Z Combinator with eager evaluation.
+* [MiniLisp v5.1](MINILISP06/version01): Recursive definitions via `letrec`, implemented through the Y Combinator with lazy evaluation.
+* [MiniLisp v5.2](MINILISP05/version02): Recursive definitions via `letrec`, implemented through the Z Combinator with eager evaluation.
 
 ### Continuations
 
-* [MiniLisp v6](MINILISP06) — First-class continuations through the `let/cc` construct.
+* [MiniLisp v6](MINILISP06): First-class continuations through the `let/cc` construct.
 
 ## Purpose
 
