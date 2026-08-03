@@ -48,5 +48,5 @@ data SASA = IdS String
           | LetS String SASA SASA
           | FunS String SASA
           | AppS SASA SASA 
-          deriving(Show)
+          deriving (Eq, Show)
 }

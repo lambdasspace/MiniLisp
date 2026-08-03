@@ -11,7 +11,7 @@ data ASA
   | Not ASA
   | Fun String ASA
   | App ASA ASA
-  deriving (Show)
+  deriving (Eq, Show)
 
 desugar :: SASA -> ASA
 desugar (IdS i) = Id i
