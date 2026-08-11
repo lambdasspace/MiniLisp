@@ -10,15 +10,17 @@ saca (NumV n) = show n
 saca (BooleanV b)
   | b == True = "#t"
   | otherwise = "#f"
-saca (ClosureV p c e) = "#<procedure>"
+saca (ClosureV _ _ _) = "#<procedure>"
+saca expression = error ("Resultado inesperado: " ++ show expression)
 
 -- Función encargada de llevar la ejecución del programa mediante los siguientes pasos:
--- 1. Impresión del propt.
+-- 1. Impresión del prompt.
 -- 2. Lectura de una cadena.
--- 3. Si la cadana es igual a ":q", se cierra el intérprete.
+-- 3. Si la cadena es igual a "(exit)", se cierra el intérprete.
 -- 4. En caso contrario, realiza la generación de código ejecutable aplicando los análisis en
 --    orden siguiente: léxico, sintáctico, semántico.
 -- 5. Vuelve a ejecutar el ciclo.
+repl :: IO ()
 repl =
   do
     putStr "> "
@@ -30,6 +32,7 @@ repl =
         repl
 
 -- Función principal. Da la bienvenida al usuario y ejecuta el REPL.
+run :: IO ()
 run =
   do
     putStrLn "Mini-Lisp v3.3. Bienvenidx."

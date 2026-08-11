@@ -4,50 +4,66 @@ import Desugar
 
 type Env = [(String, ASA)]
 
-smallStep :: ASA -> Env -> (ASA, Env)
-smallStep (Id i) env = (lookupEnv i env, env)
-smallStep (Num n) env = (Num n, env)
-smallStep (Boolean b) env = (Boolean b, env)
-smallStep (Add (Num n) (Num m)) env = (Num (n + m), env)
-smallStep (Add (Num n) d) env =
-  let (d', env') = smallStep d env
-   in (Add (Num n) d', env')
-smallStep (Add d1 d2) env =
-  let (d1', env') = smallStep d1 env
-   in (Add d1' d2, env')
-smallStep (Sub (Num n) (Num m)) env = (Num (n - m), env)
-smallStep (Sub (Num n) d) env =
-  let (d', env') = smallStep d env
-   in (Sub (Num n) d', env')
-smallStep (Sub d1 d2) env =
-  let (d1', env') = smallStep d1 env
-   in (Sub d1' d2, env')
-smallStep (Not (Boolean b)) env = (Boolean (not b), env)
-smallStep (Not d) env =
-  let (d', env') = smallStep d env
-   in (Not d', env')
-smallStep (Fun p c) env = (Fun p c, env)
-smallStep (App (Fun p c) a) env
-  | isValue a = (c, (p, a) : env)
-  | otherwise =
-    let (a', env') = smallStep a env
-     in (App (Fun p c) a', env')
-smallStep (App f a) env =
-  let (f', env') = smallStep f env
-   in (App f' a, env')
+-- La ausencia de resultado significa que la configuración no puede dar un
+-- paso. interp distingue los valores de las configuraciones bloqueadas.
+smallStep :: ASA -> Env -> Maybe (ASA, Env)
+smallStep (Id identifier) env = do
+  value <- lookupEnv identifier env
+  pure (value, env)
+smallStep (Num _) _ = Nothing
+smallStep (Boolean _) _ = Nothing
+smallStep (Add (Num left) (Num right)) env =
+  Just (Num (left + right), env)
+smallStep (Add (Num left) right) env = do
+  (right', env') <- smallStep right env
+  pure (Add (Num left) right', env')
+smallStep (Add left right) env = do
+  (left', env') <- smallStep left env
+  pure (Add left' right, env')
+smallStep (Sub (Num left) (Num right)) env =
+  Just (Num (max (left - right) 0), env)
+smallStep (Sub (Num left) right) env = do
+  (right', env') <- smallStep right env
+  pure (Sub (Num left) right', env')
+smallStep (Sub left right) env = do
+  (left', env') <- smallStep left env
+  pure (Sub left' right, env')
+smallStep (Not (Boolean value)) env =
+  Just (Boolean (not value), env)
+smallStep (Not (Num _)) env =
+  Just (Boolean False, env)
+smallStep (Not expression) env = do
+  (expression', env') <- smallStep expression env
+  pure (Not expression', env')
+smallStep (Fun _ _) _ = Nothing
+smallStep (App (Fun parameter body) argument) env
+  | isValue argument =
+      Just (Ret env body, (parameter, argument) : env)
+smallStep (App function argument) env
+  | isValue function = do
+      (argument', env') <- smallStep argument env
+      pure (App function argument', env')
+smallStep (App function argument) env = do
+  (function', env') <- smallStep function env
+  pure (App function' argument, env')
+smallStep (Ret callerEnv body) env
+  | isValue body = Just (body, callerEnv)
+  | otherwise = do
+      (body', env') <- smallStep body env
+      pure (Ret callerEnv body', env')
 
 interp :: ASA -> Env -> ASA
-interp e env
-  | isValue e = e
-  | otherwise =
-    let (e', env') = smallStep e env
-     in interp e' env'
-    
-lookupEnv :: String -> Env -> ASA
-lookupEnv i [] = error ("Variable " ++ i ++ " not found")
-lookupEnv i ((j, v) : env)
-  | i == j = v
-  | otherwise = lookupEnv i env
+interp expression env
+  | isValue expression = expression
+  | otherwise = case smallStep expression env of
+      Just (expression', env') -> interp expression' env'
+      Nothing -> error ("Expresión bloqueada: " ++ show expression)
+
+lookupEnv :: String -> Env -> Maybe ASA
+lookupEnv _ [] = Nothing
+lookupEnv identifier ((name, value) : env)
+  | identifier == name = Just value
+  | otherwise = lookupEnv identifier env
 
 isValue :: ASA -> Bool
 isValue (Num _) = True
@@ -56,14 +72,17 @@ isValue (Fun _ _) = True
 isValue _ = False
 
 numN :: ASA -> Int
-numN (Num n) = n
+numN (Num number) = number
+numN expression = error ("Se esperaba un número: " ++ show expression)
 
 boolN :: ASA -> Bool
-boolN (Boolean b) = b
-boolN _ = False
+boolN (Boolean boolean) = boolean
+boolN expression = error ("Se esperaba un booleano: " ++ show expression)
 
 funP :: ASA -> String
-funP (Fun p _) = p
+funP (Fun parameter _) = parameter
+funP expression = error ("Se esperaba una función: " ++ show expression)
 
 funC :: ASA -> ASA
-funC (Fun _ c) = c
+funC (Fun _ body) = body
+funC expression = error ("Se esperaba una función: " ++ show expression)
