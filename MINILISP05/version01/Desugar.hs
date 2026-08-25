@@ -15,10 +15,11 @@ data ASA
   | If0 ASA ASA ASA    
   | If  ASA ASA ASA    
   | Fun String ASA
+  | LetRec String ASA ASA
   | App ASA ASA
   deriving (Show)
 
--- AST de valores (lo que tu evaluador por pasos usa)
+-- AST ejecutable para el evaluador directo de paso grande
 data ASAValues
   = IdV String
   | NumV Int
@@ -31,8 +32,8 @@ data ASAValues
   | If0V ASAValues ASAValues ASAValues
   | IfV  ASAValues ASAValues ASAValues
   | FunV String ASAValues
-  | ExprV ASAValues [(String, ASAValues)]
   | ClosureV String ASAValues [(String, ASAValues)]
+  | LetRecV String ASAValues ASAValues
   | AppV ASAValues ASAValues
   deriving(Show)
 
@@ -47,7 +48,7 @@ desugar (MulS i d)           = Mul (desugar i) (desugar d)
 desugar (LeqS i d)           = Leq (desugar i) (desugar d)
 desugar (NotS e)             = Not (desugar e)
 desugar (LetS p v c)         = App (Fun p (desugar c)) (desugar v)
-desugar (LetRecS p v c)      = desugar (LetS p (AppS (idS "Y") (FunS p v)) c)
+desugar (LetRecS p v c)      = LetRec p (desugar v) (desugar c)
 desugar (If0S c t e)         = If0 (desugar c) (desugar t) (desugar e)
 desugar (IfS  c t e)         = If  (desugar c) (desugar t) (desugar e)
 desugar (FunS p c)           = Fun p (desugar c)
@@ -66,4 +67,5 @@ desugarV (Not e)             = NotV (desugarV e)
 desugarV (If0 c t e)         = If0V (desugarV c) (desugarV t) (desugarV e)
 desugarV (If  c t e)         = IfV  (desugarV c) (desugarV t) (desugarV e)
 desugarV (Fun p c)           = FunV p (desugarV c)
+desugarV (LetRec p v c)      = LetRecV p (desugarV v) (desugarV c)
 desugarV (App f a)           = AppV (desugarV f) (desugarV a)

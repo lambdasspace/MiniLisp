@@ -39,7 +39,3 @@ main = do
   assertEqual "resta truncada" (Num 0) (interp (Sub (Num 2) (Num 5)) [])
   assertEqual "negación numérica" (Boolean False)
     (interp (Not (Num 0)) [])
-  assertEqual "los valores no dan pasos" Nothing
-    (smallStep (Num 1) [])
-  assertEqual "una suma mal formada queda bloqueada" Nothing
-    (smallStep (Add (Boolean True) (Num 1)) [])

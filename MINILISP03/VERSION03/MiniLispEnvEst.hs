@@ -28,7 +28,7 @@ repl =
     if str == "(exit)"
       then putStrLn "Bye."
       else do
-        putStrLn $ saca (interp (desugarV (desugar (parse (lexer str)))) [])
+        putStrLn $ saca (interp (desugar (parse (lexer str))) [])
         repl
 
 -- Función principal. Da la bienvenida al usuario y ejecuta el REPL.

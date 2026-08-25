@@ -4,40 +4,28 @@ import Desugar
 
 type Env = [(String, ASA)]
 
-smallStep :: ASA -> Env -> (ASA, Env)
-smallStep (Id i) env = (lookupEnv i env, env)
-smallStep (Num n) env = (Num n, env)
-smallStep (Boolean b) env = (Boolean b, env)
-smallStep (Add (Num n) (Num m)) env = (Num (n + m), env)
-smallStep (Add (Num n) d) env =
-  let (d', env') = smallStep d env
-   in (Add (Num n) d', env')
-smallStep (Add d1 d2) env =
-  let (d1', env') = smallStep d1 env
-   in (Add d1' d2, env')
-smallStep (Sub (Num n) (Num m)) env = (Num (n - m), env)
-smallStep (Sub (Num n) d) env =
-  let (d', env') = smallStep d env
-   in (Sub (Num n) d', env')
-smallStep (Sub d1 d2) env =
-  let (d1', env') = smallStep d1 env
-   in (Sub d1' d2, env')
-smallStep (Not (Boolean b)) env = (Boolean (not b), env)
-smallStep (Not d) env =
-  let (d', env') = smallStep d env
-   in (Not d', env')
-smallStep (Fun p c) env = (Fun p c, env)
-smallStep (App (Fun p c) a) env = (c, (p,a) : env)
-smallStep (App f a) env =
-  let (f', env') = smallStep f env
-   in (App f' a, env')
-
+-- Variante deliberadamente ingenua: las funciones sí son cerraduras, pero
+-- el argumento se guarda como expresión desnuda. Cuando se consulta el
+-- parámetro, esa expresión se evalúa en el ambiente del uso y sus variables
+-- libres adquieren alcance dinámico accidental.
 interp :: ASA -> Env -> ASA
-interp e env
-  | isValue e = e
-  | otherwise =
-    let (e', env') = smallStep e env
-     in interp e' env'
+interp (Id identifier) env =
+  let stored = lookupEnv identifier env
+  in if isValue stored then stored else interp stored env
+interp value@(Num _) _ = value
+interp value@(Boolean _) _ = value
+interp (Add left right) env =
+  Num (numN (interp left env) + numN (interp right env))
+interp (Sub left right) env =
+  Num (max 0 (numN (interp left env) - numN (interp right env)))
+interp (Not expression) env = Boolean (not (boolN (interp expression env)))
+interp (Fun parameter body) env = Closure parameter body env
+interp closure@(Closure _ _ _) _ = closure
+interp (App function argument) callerEnv =
+  case interp function callerEnv of
+    Closure parameter body definitionEnv ->
+      interp body ((parameter, argument) : definitionEnv)
+    result -> error ("Se esperaba una cerradura: " ++ show result)
     
 lookupEnv :: String -> Env -> ASA
 lookupEnv i [] = error ("Variable " ++ i ++ " not found")
@@ -48,18 +36,23 @@ lookupEnv i ((j, v) : env)
 isValue :: ASA -> Bool
 isValue (Num _) = True
 isValue (Boolean _) = True
-isValue (Fun _ _) = True
+isValue (Closure _ _ _) = True
 isValue _ = False
 
 numN :: ASA -> Int
 numN (Num n) = n
+numN expression = error ("Se esperaba un número: " ++ show expression)
 
 boolN :: ASA -> Bool
 boolN (Boolean b) = b
-boolN _ = False
+boolN (Num _) = True
+boolN expression =
+  error ("Se esperaba un booleano o número: " ++ show expression)
 
 funP :: ASA -> String
-funP (Fun p _) = p
+funP (Closure p _ _) = p
+funP expression = error ("Se esperaba una cerradura: " ++ show expression)
 
 funC :: ASA -> ASA
-funC (Fun _ c) = c
+funC (Closure _ c _) = c
+funC expression = error ("Se esperaba una cerradura: " ++ show expression)

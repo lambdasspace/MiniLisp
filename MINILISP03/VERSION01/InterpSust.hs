@@ -3,52 +3,26 @@ module InterpSust where
 import qualified Data.Set as Set
 import Desugar
 
--- La ausencia de resultado indica que la expresión no puede dar un paso.
--- Esto incluye tanto los valores como las expresiones bloqueadas; interp
--- distingue ambos casos mediante isValue.
-smallStep :: ASA -> Maybe ASA
-smallStep (Id _) = Nothing
-smallStep (Num _) = Nothing
-smallStep (Boolean _) = Nothing
-smallStep (Add (Num left) (Num right)) =
-  Just (Num (left + right))
-smallStep (Add (Num left) right) =
-  Add (Num left) <$> smallStep right
-smallStep (Add left right) =
-  (`Add` right) <$> smallStep left
-smallStep (Sub (Num left) (Num right)) =
-  Just (Num (max (left - right) 0))
-smallStep (Sub (Num left) right) =
-  Sub (Num left) <$> smallStep right
-smallStep (Sub left right) =
-  (`Sub` right) <$> smallStep left
-smallStep (Not (Boolean value)) =
-  Just (Boolean (not value))
-smallStep (Not (Num _)) =
-  Just (Boolean False)
-smallStep (Not expression) =
-  Not <$> smallStep expression
-smallStep (Fun _ _) = Nothing
-smallStep (App (Fun parameter body) argument)
-  | isValue argument = Just (sust body parameter argument)
-smallStep (App function argument)
-  | isValue function = App function <$> smallStep argument
-smallStep (App function argument) =
-  (`App` argument) <$> smallStep function
-
-isValue :: ASA -> Bool
-isValue (Num _) = True
-isValue (Boolean _) = True
-isValue (Fun _ _) = True
-isValue _ = False
-
+-- Evaluador de paso grande con sustitución. La aplicación es ansiosa: tanto
+-- la posición de función como el argumento se evalúan antes de sustituir.
 interp :: ASA -> ASA
-interp expression
-  | isValue expression = expression
-  | otherwise =
-      case smallStep expression of
-        Just expression' -> interp expression'
-        Nothing -> error ("Expresión bloqueada: " ++ show expression)
+interp (Id identifier) =
+  error ("Variable libre: " ++ identifier)
+interp value@(Num _) = value
+interp value@(Boolean _) = value
+interp (Add left right) =
+  Num (numN (interp left) + numN (interp right))
+interp (Sub left right) =
+  Num (max (numN (interp left) - numN (interp right)) 0)
+interp (Not expression) =
+  Boolean (not (boolN (interp expression)))
+interp function@(Fun _ _) = function
+interp (App function argument) =
+  case interp function of
+    Fun parameter body ->
+      let value = interp argument
+      in interp (sust body parameter value)
+    result -> error ("Se esperaba una función: " ++ show result)
 
 numN :: ASA -> Int
 numN (Num n) = n
@@ -56,7 +30,9 @@ numN expression = error ("Se esperaba un número: " ++ show expression)
 
 boolN :: ASA -> Bool
 boolN (Boolean b) = b
-boolN _ = False
+boolN (Num _) = True
+boolN expression =
+  error ("Se esperaba un booleano o número: " ++ show expression)
 
 funP :: ASA -> String
 funP (Fun p _) = p

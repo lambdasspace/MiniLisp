@@ -2,6 +2,8 @@ module Desugar where
 
 import Grammars
 
+type Env = [(String, ASAValues)]
+
 -- Árbol de sintaxis abstracta del núcleo ejecutable.
 -- let permanece explícito porque la máquina tiene un marco LetK.
 data ASA
@@ -17,6 +19,7 @@ data ASA
   | If ASA ASA ASA
   | Let String ASA ASA
   | LetRec String ASA ASA
+  | LetCC String ASA
   | Fun String ASA
   | App ASA ASA
   deriving (Eq, Show)
@@ -35,10 +38,32 @@ data ASAValues
   | IfV ASAValues ASAValues ASAValues
   | LetV String ASAValues ASAValues
   | LetRecV String ASAValues ASAValues
+  | LetCCV String ASAValues
   | FunV String ASAValues
-  | ClosureV String ASAValues [(String, ASAValues)]
+  | ClosureV String ASAValues Env
+  | ContV Stack
   | AppV ASAValues ASAValues
   deriving Eq
+
+-- La pila sigue siendo la estructura de control de la CEK. En v7 también
+-- puede quedar almacenada dentro de un valor ContV.
+data Stack
+  = Mt
+  | AddL ASAValues Env Stack
+  | AddR Int Stack
+  | SubL ASAValues Env Stack
+  | SubR Int Stack
+  | MulL ASAValues Env Stack
+  | MulR Int Stack
+  | LeqL ASAValues Env Stack
+  | LeqR Int Stack
+  | NotK Stack
+  | If0K ASAValues ASAValues Env Stack
+  | IfK ASAValues ASAValues Env Stack
+  | LetK String ASAValues Env Stack
+  | FunK ASAValues Env Stack
+  | ArgK ASAValues Stack
+  deriving (Eq, Show)
 
 instance Show ASAValues where
   show (IdV name) = name
@@ -58,9 +83,12 @@ instance Show ASAValues where
     "(let (" ++ name ++ " " ++ show value ++ ") " ++ show body ++ ")"
   show (LetRecV name value body) =
     "(letrec (" ++ name ++ " " ++ show value ++ ") " ++ show body ++ ")"
+  show (LetCCV name body) =
+    "(let/cc " ++ name ++ " " ++ show body ++ ")"
   show (FunV parameter body) =
     "(lambda (" ++ parameter ++ ") " ++ show body ++ ")"
   show (ClosureV _ _ _) = "#<procedure>"
+  show (ContV _) = "#<continuation>"
   show (AppV function argument) =
     "(" ++ show function ++ " " ++ show argument ++ ")"
 
@@ -82,6 +110,8 @@ desugar (LetS name value body) =
   Let name (desugar value) (desugar body)
 desugar (LetRecS name value body) =
   LetRec name (desugar value) (desugar body)
+desugar (LetCCS name body) =
+  LetCC name (desugar body)
 desugar (FunS parameter body) =
   Fun parameter (desugar body)
 desugar (AppS function argument) =
@@ -105,6 +135,8 @@ desugarV (Let name value body) =
   LetV name (desugarV value) (desugarV body)
 desugarV (LetRec name value body) =
   LetRecV name (desugarV value) (desugarV body)
+desugarV (LetCC name body) =
+  LetCCV name (desugarV body)
 desugarV (Fun parameter body) =
   FunV parameter (desugarV body)
 desugarV (App function argument) =

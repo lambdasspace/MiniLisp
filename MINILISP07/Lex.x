@@ -24,6 +24,7 @@ tokens :-
   \*                    { \_ -> TokenMult }
   "<="                  { \_ -> TokenLeq }
   not                   { \_ -> TokenNot }
+  "let/cc"              { \_ -> TokenLetCC }
   letrec                { \_ -> TokenLetRec }
   let                   { \_ -> TokenLet }
   lambda                { \_ -> TokenLambda }
@@ -57,6 +58,7 @@ data Token
   | TokenPC
   | TokenLet
   | TokenLetRec
+  | TokenLetCC
   | TokenIf0
   | TokenIf
   | TokenLambda

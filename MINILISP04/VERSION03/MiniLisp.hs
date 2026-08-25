@@ -26,7 +26,7 @@ repl =
     if str == "(exit)"
       then putStrLn "Bye."
       else do
-        putStrLn $ saca (interp (desugarV (desugar (parse (lexer str)))) [])
+        putStrLn $ saca (runProgram (desugar (parse (lexer str))))
         repl
 
 -- Función principal. Da la bienvenida al usuario y ejecuta el REPL.
@@ -35,8 +35,7 @@ run =
     putStrLn "Mini-Lisp v4.3. Bienvenidx."
     repl
 
-test x = putStrLn $ saca (interp (desugarV (desugar (parse (lexer x)))) [])
+test x = putStrLn $ saca (runProgram (desugar (parse (lexer x))))
 test1 = test "(let (a (+ 4 4)) (let (b (+ a a)) (let (a (+ 3 3)) (if0 b 1 2))))"         -- 2
 test2 = test "(let (a (+ 4 4)) (let (b (+ a a)) (let (a (- 3 3)) (if0 b 1 2))))"         -- 2
 test3 = test "(let (a 2) (let (b 3) (let (c (+ a b)) (let (a 0) (let (b 2) (+ c c))))))" -- 10
-

@@ -2,44 +2,47 @@
 
 Manuel Soto Romero
 
-This repository documents the incremental design and implementation of **MiniLisp**, a pedagogical programming language conceived to explore fundamental concepts in programming language theory. Each version introduces new expressive capabilities, ranging from arithmetic and boolean expressions to continuations.
+This repository documents the incremental design and implementation of **MiniLisp**, a pedagogical programming language conceived to explore fundamental concepts in programming language theory. A version may add expressive capabilities or provide a different semantic mechanism for an existing language. For example, v6 keeps the language of v5.1 but replaces its direct evaluator with a CEK machine.
 
 The project follows the pedagogical approach of the **first edition of *Programming Languages: Application and Interpretation* (PLAI)** by Shriram Krishnamurthi, while using **Haskell** as the host language. The choice of Haskell provides a precise functional framework for expressing interpreters and semantic definitions, reinforcing theoretical connections to substitution, evaluation strategies, and higher-order functions.
 
-Another **substantial difference** with respect to *PLAI* is that **MiniLisp adopts a structural operational semantics** instead of a natural semantics. This choice emphasizes the step-by-step reduction process of program evaluation, making explicit the intermediate computation states and transitions that occur during execution. Such an approach facilitates the study of **small-step semantics** and its relationship to implementation techniques such as abstract machines.
+MiniLisp uses **natural operational semantics** as its default executable model: each interpreter relates a complete expression to its final value. Structural operational semantics is retained only where intermediate transitions are themselves the object of study. Version 1 implements both styles so that their results can be compared explicitly; versions 2 through 5 use direct evaluators that mirror their big-step specifications. Versions 6 and 7 expose the control of execution because machines and first-class continuations are their respective objects of study.
 
 ## Repository Contents
 
 ### Arithmetic and Boolean Expressions
 
-* [MiniLisp v1](MINILISP01): Arithmetic and boolean expressions with binary operators.
+* [MiniLisp v1](MINILISP01): Arithmetic and boolean expressions, with both big-step and small-step evaluators for an explicit comparison of the two styles.
 
 ### Variables and Substitution
 
-* [MiniLisp v2](MINILISP02): Preserves every construct and semantic rule from
-  v1, and adds identifiers and `let` expressions with substitution-based
-  binding.
+* [MiniLisp v2](MINILISP02): Adds identifiers and `let` expressions with substitution-based binding and direct eager evaluation.
 
 ### Functions and Scope
 
-* [MiniLisp v3.1](MINILISP03/VERSION01): Anonymous functions with substitution under static scope.
-* [MiniLisp v3.2](MINILISP03/VERSION02): Anonymous functions with environments under dynamic scope.
-* [MiniLisp v3.3](MINILISP03/VERSION03): Anonymous functions with environments under static scope.
+* [MiniLisp v3.1](MINILISP03/VERSION01): Anonymous functions with eager, substitution-based big-step evaluation.
+* [MiniLisp v3.2](MINILISP03/VERSION02): Anonymous functions with a direct environment evaluator and dynamic scope.
+* [MiniLisp v3.3](MINILISP03/VERSION03): Anonymous functions with closures and static scope.
 
 ### Evaluation Strategies
 
-* [MiniLisp v4.1](MINILISP04/VERSION01): Substitution semantics with lazy evaluation.
-* [MiniLisp v4.2](MINILISP04/VERSION02): Environment-based semantics with lazy evaluation.
-* [MiniLisp v4.3](MINILISP04/VERSION03): `if0` conditional with environments, lazy evaluation, and strictness points.
+* [MiniLisp v4.1](MINILISP04/VERSION01): Big-step substitution semantics with deferred function arguments.
+* [MiniLisp v4.2](MINILISP04/VERSION02): A deliberately naive big-step environment model that stores raw argument expressions and therefore exhibits accidental dynamic scope.
+* [MiniLisp v4.3](MINILISP04/VERSION03): Big-step evaluation with expression closures without caching, static scope, `if0`, and strictness points.
 
 ### Recursion
 
-* [MiniLisp v5.1](MINILISP06/version01): Recursive definitions via `letrec`, implemented through the Y Combinator with lazy evaluation.
-* [MiniLisp v5.2](MINILISP05/version02): Recursive definitions via `letrec`, implemented through the Z Combinator with eager evaluation.
+* [MiniLisp v5.1](MINILISP05/version01): Recursive definitions via `letrec`, implemented directly with recursive environments and eager evaluation.
+* [MiniLisp v5.2](MINILISP05/version02): Recursive definitions via `letrec`, implemented through the Y Combinator with deferred evaluation without memoization.
+* [MiniLisp v5.3](MINILISP05/version03): Recursive definitions via `letrec`, implemented through the Z Combinator with eager evaluation.
+
+### Explicit Control
+
+* [MiniLisp v6](MINILISP06): A CEK machine over the eager, statically scoped language of v5.1. Its control stack is internal and cannot be manipulated by MiniLisp programs.
 
 ### Continuations
 
-* [MiniLisp v6](MINILISP06): First-class continuations through the `let/cc` construct.
+* [MiniLisp v7](MINILISP07): First-class continuations through the `let/cc` construct.
 
 ## Purpose
 

@@ -18,7 +18,7 @@ data ASA
   | App ASA ASA
   deriving (Show)
 
--- AST ejecutable para el evaluador diferido de paso grande
+-- AST ejecutable para el evaluador ansioso de paso grande
 data ASAValues
   = IdV String
   | NumV Int
@@ -47,7 +47,7 @@ desugar (MulS i d)           = Mul (desugar i) (desugar d)
 desugar (LeqS i d)           = Leq (desugar i) (desugar d)
 desugar (NotS e)             = Not (desugar e)
 desugar (LetS p v c)         = App (Fun p (desugar c)) (desugar v)
-desugar (LetRecS p v c)      = desugar (LetS p (AppS (IdS "Y") (FunS p v)) c)
+desugar (LetRecS p v c)      = desugar (LetS p (AppS (IdS "Z") (FunS p v)) c)
 desugar (If0S c t e)         = If0 (desugar c) (desugar t) (desugar e)
 desugar (IfS  c t e)         = If  (desugar c) (desugar t) (desugar e)
 desugar (FunS p c)           = Fun p (desugar c)

@@ -10,7 +10,7 @@ saca (Num n) = show n
 saca (Boolean b)
   | b == True = "#t"
   | otherwise = "#f"
-saca (Fun p c) = "#<procedure>"
+saca (Closure _ _ _) = "#<procedure>"
 
 -- Función encargada de llevar la ejecución del programa mediante los siguientes pasos:
 -- 1. Impresión del propt.
@@ -32,7 +32,7 @@ repl =
 -- Función principal. Da la bienvenida al usuario y ejecuta el REPL.
 run =
   do
-    putStrLn "Mini-Lisp v3.2. Bienvenidx."
+    putStrLn "Mini-Lisp v4.2. Bienvenidx."
     repl
 
 test x = putStrLn $ saca (interp (desugar (parse (lexer x))) [])

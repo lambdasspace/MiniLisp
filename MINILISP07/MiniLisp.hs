@@ -10,6 +10,7 @@ saca (NumV number) = show number
 saca (BooleanV True) = "#t"
 saca (BooleanV False) = "#f"
 saca (ClosureV _ _ _) = "#<procedure>"
+saca (ContV _) = "#<continuation>"
 saca value = show value
 
 prelude :: Env
@@ -45,7 +46,7 @@ repl = do
 
 run :: IO ()
 run = do
-  putStrLn "Mini-Lisp v6 (maquina CEK). Bienvenidx."
+  putStrLn "Mini-Lisp v7 (maquina CEK con continuaciones). Bienvenidx."
   repl
 
 test :: String -> IO ()
@@ -54,16 +55,16 @@ test source =
     Right value -> putStrLn (saca value)
     Left message -> putStrLn ("Error: " ++ message)
 
-testConductor :: IO ()
-testConductor =
-  test "(let (x 10) ((lambda (y) (+ x y)) 5))"
+testLetCC :: IO ()
+testLetCC =
+  test "(+ 1 (+ (let/cc k (k 3)) 3))"
+
+testEscape :: IO ()
+testEscape =
+  test
+    "(let/cc abort ((lambda (n) (+ 100 (if0 n (abort 7) n))) 0))"
 
 testSuma :: IO ()
 testSuma =
   test
     "(letrec (sumN (lambda (n) (if0 n 0 (+ n (sumN (- n 1)))))) (sumN 3))"
-
-testFactorial :: IO ()
-testFactorial =
-  test
-    "(letrec (fact (lambda (n) (if (<= n 1) 1 (* n (fact (- n 1)))))) (fact 5))"

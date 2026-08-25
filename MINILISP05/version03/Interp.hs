@@ -4,7 +4,7 @@ import Desugar
 
 type Env = [(String, ASAValues)]
 
--- Evaluador directo (paso grande) con alcance estático.
+-- Evaluador directo (paso grande) con evaluación ansiosa y alcance estático.
 interp :: ASAValues -> Env -> ASAValues
 interp (IdV i) env = lookupEnv i env
 interp n@(NumV _) _ = n
@@ -25,13 +25,7 @@ interp (AppV f a) env =
       let argument = interp a env
       in interp body ((p, argument) : definitionEnv)
     _ -> error "Application expects a function"
-interp (LetRecV name (FunV parameter functionBody) body) env =
-  -- La cerradura y el ambiente recursivo se refieren mutuamente.
-  let recursiveEnv = (name, recursiveClosure) : env
-      recursiveClosure = ClosureV parameter functionBody recursiveEnv
-  in interp body recursiveEnv
-interp (LetRecV _ _ _) _ =
-  error "This version of letrec expects a function definition"
+interp (ExprV e savedEnv) _ = interp e savedEnv
 
 lookupEnv :: String -> Env -> ASAValues
 lookupEnv i [] = error ("Variable " ++ i ++ " not found")

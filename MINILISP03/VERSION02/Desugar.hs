@@ -11,10 +11,6 @@ data ASA
   | Not ASA
   | Fun String ASA
   | App ASA ASA
-  -- Forma interna de control. El analizador nunca produce Ret: la crea el
-  -- evaluador al entrar al cuerpo de una función para recordar el ambiente
-  -- de la invocación.
-  | Ret [(String, ASA)] ASA
   deriving (Eq, Show)
 
 desugar :: SASA -> ASA

@@ -2,40 +2,32 @@ module Interp where
 
 import Grammars
 
--- Conserva las transiciones de MINILISP01 y añade identificadores y let.
--- Nothing significa que no existe una transición saliente.
-smallStep :: ASA -> Maybe ASA
-smallStep (Id _) = Nothing
-smallStep (Num _) = Nothing
-smallStep (Boolean _) = Nothing
-smallStep (Add (Num i) (Num d)) = Just (Num (i + d))
-smallStep (Add (Num i) d) = Add (Num i) <$> smallStep d
-smallStep (Add i d) = (`Add` d) <$> smallStep i
-smallStep (Sub (Num i) (Num d)) = Just (Num (max (i - d) 0))
-smallStep (Sub (Num i) d) = Sub (Num i) <$> smallStep d
-smallStep (Sub i d) = (`Sub` d) <$> smallStep i
-smallStep (Not (Boolean False)) = Just (Boolean True)
-smallStep (Not (Boolean True)) = Just (Boolean False)
-smallStep (Not (Num _)) = Just (Boolean False)
-smallStep (Not e) = Not <$> smallStep e
-smallStep (Let i v b)
-  | esValor v = Just (sust b i v)
-  | otherwise = (\v' -> Let i v' b) <$> smallStep v
-
+-- Evaluador directo correspondiente a la semántica natural de la Nota 08.
+-- En let se evalúa primero la expresión ligada y se sustituye su valor en el
+-- cuerpo: ésta es una estrategia ansiosa.
 interp :: ASA -> ASA
-interp e
-  | esValor e = e
-  | otherwise =
-      case smallStep e of
-        Just e' -> interp e'
-        Nothing -> error "Expresión bloqueada"
+interp (Id identifier) =
+  error ("Variable libre: " ++ identifier)
+interp value@(Num _) = value
+interp value@(Boolean _) = value
+interp (Add left right) =
+  Num (numN (interp left) + numN (interp right))
+interp (Sub left right) =
+  Num (max (numN (interp left) - numN (interp right)) 0)
+interp (Not expression) =
+  Boolean (not (boolN (interp expression)))
+interp (Let identifier named body) =
+  let value = interp named
+  in interp (sust body identifier value)
 
 numN :: ASA -> Int
 numN (Num n) = n
 
 boolN :: ASA -> Bool
 boolN (Boolean b) = b
-boolN _ = False
+boolN (Num _) = True
+boolN expression =
+  error ("Se esperaba un booleano o número: " ++ show expression)
 
 esValor :: ASA -> Bool
 esValor (Num _) = True

@@ -2,35 +2,13 @@ module Interp where
 
 import Desugar
 
-type Env = [(String, ASAValues)]
-
--- Pila interna de control. No es un valor de MiniLisp y el programa
--- no puede nombrarla, capturarla ni aplicarla.
-data Stack
-  = Mt
-  | AddL ASAValues Env Stack
-  | AddR Int Stack
-  | SubL ASAValues Env Stack
-  | SubR Int Stack
-  | MulL ASAValues Env Stack
-  | MulR Int Stack
-  | LeqL ASAValues Env Stack
-  | LeqR Int Stack
-  | NotK Stack
-  | If0K ASAValues ASAValues Env Stack
-  | IfK ASAValues ASAValues Env Stack
-  | LetK String ASAValues Env Stack
-  | FunK ASAValues Env Stack
-  | ArgK ASAValues Stack
-  deriving Show
-
 -- CEK representa el momento de atender una expresión.
 -- Return representa el momento de entregar un valor a la pila.
 data State
   = CEK ASAValues Env Stack
   | Return Stack ASAValues
   | Stuck String
-  deriving Show
+  deriving (Eq, Show)
 
 step :: State -> Maybe State
 step (CEK (IdV name) env stack) =
@@ -49,6 +27,9 @@ step (CEK (FunV parameter body) env stack) =
 
 step (CEK closure@(ClosureV _ _ _) _ stack) =
   Just (Return stack closure)
+
+step (CEK continuation@(ContV _) _ stack) =
+  Just (Return stack continuation)
 
 step (CEK (AddV left right) env stack) =
   Just (CEK left env (AddL right env stack))
@@ -116,6 +97,11 @@ step (CEK (LetV name value body) env stack) =
 step (Return (LetK name body env stack) value) =
   Just (CEK body ((name, value) : env) stack)
 
+-- let/cc vuelve valor a la pila de control actual y la liga en el ambiente.
+-- El cuerpo continúa bajo la misma pila.
+step (CEK (LetCCV name body) env stack) =
+  Just (CEK body ((name, ContV stack) : env) stack)
+
 step (CEK (AppV function argument) env stack) =
   Just (CEK function env (FunK argument env stack))
 
@@ -123,9 +109,18 @@ step (Return (FunK argument env stack)
              closure@(ClosureV _ _ _)) =
   Just (CEK argument env (ArgK closure stack))
 
+step (Return (FunK argument env stack)
+             continuation@(ContV _)) =
+  Just (CEK argument env (ArgK continuation stack))
+
 step (Return (ArgK (ClosureV parameter body definitionEnv) stack)
              argument) =
   Just (CEK body ((parameter, argument) : definitionEnv) stack)
+
+-- Aplicar una continuación capturada descarta la pila actual y reinstala
+-- exactamente la pila guardada en el valor ContV.
+step (Return (ArgK (ContV capturedStack) _) argument) =
+  Just (Return capturedStack argument)
 
 step (CEK (LetRecV name (FunV parameter functionBody) body)
           env stack) =
@@ -177,7 +172,7 @@ step (Return (IfK _ _ _ _) _) =
   Just (Stuck "if espera un booleano")
 
 step (Return (FunK _ _ _) _) =
-  Just (Stuck "La aplicacion espera una funcion")
+  Just (Stuck "La aplicacion espera una funcion o una continuacion")
 
 step (Return (ArgK _ _) _) =
   Just (Stuck "Marco de aplicacion mal formado")

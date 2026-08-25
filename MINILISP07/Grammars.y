@@ -22,6 +22,7 @@ import Lex (Token(..),lexer)
       ')'             { TokenPC }
       let             { TokenLet }
       letrec          { TokenLetRec }
+      letcc           { TokenLetCC }
       if0             { TokenIf0 }
       if              { TokenIf }
       lambda          { TokenLambda }
@@ -41,6 +42,7 @@ SASA : var                                 { IdS $1 }
 
      | '(' let    '(' var SASA ')' SASA ')'    { LetS    $4 $5 $7 }
      | '(' letrec '(' var SASA ')' SASA ')'    { LetRecS $4 $5 $7 }
+     | '(' letcc var SASA ')'                     { LetCCS $3 $4 }
 
      | '(' if0 SASA SASA SASA ')'          { If0S $3 $4 $5 }
      | '(' if  SASA SASA SASA ')'          { IfS  $3 $4 $5 }
@@ -64,6 +66,7 @@ data SASA = IdS String
           | NotS SASA
           | LetS String SASA SASA
           | LetRecS String SASA SASA
+          | LetCCS String SASA
           | If0S SASA SASA SASA
           | IfS  SASA SASA SASA
           | FunS String SASA

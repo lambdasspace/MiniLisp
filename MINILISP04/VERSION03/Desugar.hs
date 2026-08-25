@@ -12,7 +12,7 @@ data ASA
   | If0 ASA ASA ASA
   | Fun String ASA
   | App ASA ASA
-  deriving (Show)
+  deriving (Eq, Show)
 
 data ASAValues
   = IdV String
@@ -26,7 +26,7 @@ data ASAValues
   | ExprV ASAValues [(String, ASAValues)]
   | ClosureV String ASAValues [(String, ASAValues)]
   | AppV ASAValues ASAValues
-  deriving (Show)
+  deriving (Eq, Show)
 
 desugar :: SASA -> ASA
 desugar (IdS i) = Id i

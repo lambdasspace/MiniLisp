@@ -10,8 +10,8 @@ assertEqual label expected actual
       (label ++ ": se esperaba " ++ show expected ++
        ", pero se obtuvo " ++ show actual)
 
-scopeProgram :: ASAValues
-scopeProgram = desugarV
+scopeProgram :: ASA
+scopeProgram =
   (App
     (Fun "x"
       (App
@@ -22,8 +22,8 @@ scopeProgram = desugarV
         (Fun "y" (Add (Id "x") (Id "y")))))
     (Num 3))
 
-restorationProgram :: ASAValues
-restorationProgram = desugarV
+restorationProgram :: ASA
+restorationProgram =
   (App
     (Fun "x"
       (Add
@@ -31,8 +31,8 @@ restorationProgram = desugarV
         (Id "x")))
     (Num 10))
 
-escapingClosureProgram :: ASAValues
-escapingClosureProgram = desugarV
+escapingClosureProgram :: ASA
+escapingClosureProgram =
   (App
     (Fun "make"
       (App
@@ -48,12 +48,6 @@ main = do
   assertEqual "cerradura que escapa" (NumV 7)
     (interp escapingClosureProgram [])
   assertEqual "resta truncada" (NumV 0)
-    (interp (desugarV (Sub (Num 2) (Num 5))) [])
+    (interp (Sub (Num 2) (Num 5)) [])
   assertEqual "negación numérica" (BooleanV False)
-    (interp (desugarV (Not (Num 0))) [])
-  assertEqual "un literal produce su valor de ejecución"
-    (Just (NumV 1, [])) (smallStep (NumC 1) [])
-  assertEqual "los valores no dan pasos" Nothing
-    (smallStep (NumV 1) [])
-  assertEqual "una suma mal formada queda bloqueada" Nothing
-    (smallStep (AddV (BooleanV True) (NumV 1)) [])
+    (interp (Not (Num 0)) [])
