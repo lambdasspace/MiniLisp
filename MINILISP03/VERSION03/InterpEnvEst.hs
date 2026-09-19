@@ -18,11 +18,14 @@ interp (Not expression) env =
   BooleanV (not (boolN (interp expression env)))
 interp (Fun parameter body) env = ClosureV parameter body env
 interp (App function argument) env =
-  case interp function env of
-    ClosureV parameter body definitionEnv ->
-      let value = interp argument env
-      in interp body ((parameter, value) : definitionEnv)
-    result -> error ("Se esperaba una cerradura: " ++ show result)
+  let closureValue = interp function env
+      parameter = closureP closureValue
+      body = closureC closureValue
+      definitionEnv = closureE closureValue
+      argumentValue = interp argument env
+  in seq parameter
+      (seq argumentValue
+        (interp body ((parameter, argumentValue) : definitionEnv)))
 
 lookupEnv :: String -> Env -> ASAValues
 lookupEnv identifier [] = error ("Variable libre: " ++ identifier)

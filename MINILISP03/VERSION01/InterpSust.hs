@@ -18,11 +18,13 @@ interp (Not expression) =
   Boolean (not (boolN (interp expression)))
 interp function@(Fun _ _) = function
 interp (App function argument) =
-  case interp function of
-    Fun parameter body ->
-      let value = interp argument
-      in interp (sust body parameter value)
-    result -> error ("Se esperaba una función: " ++ show result)
+  let functionValue = interp function
+      parameter = funP functionValue
+      body = funC functionValue
+      argumentValue = interp argument
+  in seq parameter
+      (seq argumentValue
+        (interp (sust body parameter argumentValue)))
 
 numN :: ASA -> Int
 numN (Num n) = n

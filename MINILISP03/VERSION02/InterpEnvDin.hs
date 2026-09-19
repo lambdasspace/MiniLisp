@@ -19,11 +19,13 @@ interp (Not expression) env =
   Boolean (not (boolN (interp expression env)))
 interp function@(Fun _ _) _ = function
 interp (App function argument) env =
-  case interp function env of
-    Fun parameter body ->
-      let value = interp argument env
-      in interp body ((parameter, value) : env)
-    result -> error ("Se esperaba una función: " ++ show result)
+  let functionValue = interp function env
+      parameter = funP functionValue
+      body = funC functionValue
+      argumentValue = interp argument env
+  in seq parameter
+      (seq argumentValue
+        (interp body ((parameter, argumentValue) : env)))
 
 lookupEnv :: String -> Env -> ASA
 lookupEnv identifier [] = error ("Variable libre: " ++ identifier)
