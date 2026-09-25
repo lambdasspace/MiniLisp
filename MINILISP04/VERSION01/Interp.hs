@@ -16,27 +16,24 @@ interp (Sub left right) =
 interp (Not expression) = Boolean (not (boolN (interp expression)))
 interp function@(Fun _ _) = function
 interp (App function argument) =
-  case interp function of
-    Fun parameter body -> interp (sust body parameter argument)
-    result -> error ("Se esperaba una función: " ++ show result)
+  interpApp (interp function) argument
+
+interpApp :: ASA -> ASA -> ASA
+interpApp (Fun parameter body) argument =
+  interp (sust body parameter argument)
 
 numN :: ASA -> Int
 numN (Num n) = n
-numN expression = error ("Se esperaba un número: " ++ show expression)
 
 boolN :: ASA -> Bool
 boolN (Boolean b) = b
 boolN (Num _) = True
-boolN expression =
-  error ("Se esperaba un booleano o número: " ++ show expression)
 
 funP :: ASA -> String
 funP (Fun p _) = p
-funP expression = error ("Se esperaba una función: " ++ show expression)
 
 funC :: ASA -> ASA
 funC (Fun _ c) = c
-funC expression = error ("Se esperaba una función: " ++ show expression)
 
 sust :: ASA -> String -> ASA -> ASA
 sust (Num n) i v = Num n

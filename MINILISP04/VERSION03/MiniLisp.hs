@@ -12,6 +12,9 @@ saca (BooleanV b)
   | otherwise = "#f"
 saca (ClosureV p c e) = "#<procedure>"
 
+runProgram :: ASA -> ASAValues
+runProgram expression = strict (interp (desugarV expression) [])
+
 -- Función encargada de llevar la ejecución del programa mediante los siguientes pasos:
 -- 1. Impresión del propt.
 -- 2. Lectura de una cadena.

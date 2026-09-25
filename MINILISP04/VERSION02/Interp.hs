@@ -22,10 +22,11 @@ interp (Not expression) env = Boolean (not (boolN (interp expression env)))
 interp (Fun parameter body) env = Closure parameter body env
 interp closure@(Closure _ _ _) _ = closure
 interp (App function argument) callerEnv =
-  case interp function callerEnv of
-    Closure parameter body definitionEnv ->
-      interp body ((parameter, argument) : definitionEnv)
-    result -> error ("Se esperaba una cerradura: " ++ show result)
+  interpApp (interp function callerEnv) argument
+
+interpApp :: ASA -> ASA -> ASA
+interpApp (Closure parameter body definitionEnv) argument =
+  interp body ((parameter, argument) : definitionEnv)
     
 lookupEnv :: String -> Env -> ASA
 lookupEnv i [] = error ("Variable " ++ i ++ " not found")
@@ -41,18 +42,13 @@ isValue _ = False
 
 numN :: ASA -> Int
 numN (Num n) = n
-numN expression = error ("Se esperaba un número: " ++ show expression)
 
 boolN :: ASA -> Bool
 boolN (Boolean b) = b
 boolN (Num _) = True
-boolN expression =
-  error ("Se esperaba un booleano o número: " ++ show expression)
 
 funP :: ASA -> String
 funP (Closure p _ _) = p
-funP expression = error ("Se esperaba una cerradura: " ++ show expression)
 
 funC :: ASA -> ASA
 funC (Closure _ c _) = c
-funC expression = error ("Se esperaba una cerradura: " ++ show expression)

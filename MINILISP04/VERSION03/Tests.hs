@@ -10,6 +10,9 @@ assertEqual label expected actual
       (label ++ ": se esperaba " ++ show expected ++
        ", pero se obtuvo " ++ show actual)
 
+evalProgram :: ASA -> ASAValues
+evalProgram expression = strict (interp (desugarV expression) [])
+
 staticProgram :: ASA
 staticProgram =
   App (Fun "x"
@@ -36,27 +39,27 @@ restorationProgram =
 main :: IO ()
 main = do
   assertEqual "alcance estatico" (NumV 6)
-    (runProgram staticProgram)
+    (evalProgram staticProgram)
   assertEqual "if0 y puntos estrictos" (NumV 2)
-    (runProgram conditionalProgram)
+    (evalProgram conditionalProgram)
   assertEqual "argumento sin usar" (NumV 4)
-    (runProgram (App (Fun "x" (Num 4)) (Id "libre")))
+    (evalProgram (App (Fun "x" (Num 4)) (Id "libre")))
   assertEqual "resta truncada" (NumV 0)
-    (runProgram (Sub (Num 2) (Num 5)))
+    (evalProgram (Sub (Num 2) (Num 5)))
   assertEqual "negacion booleana" (BooleanV False)
-    (runProgram (Not (Boolean True)))
+    (evalProgram (Not (Boolean True)))
   assertEqual "restauracion del ambiente" (NumV 11)
-    (runProgram restorationProgram)
+    (evalProgram restorationProgram)
 
   let argument = AddV (NumV 2) (NumV 3)
       delayed = ExprV argument []
       delayedEnv = [("x", delayed)]
       body = AddV (IdV "x") (IdV "x")
+  assertEqual "Id devuelve la cerradura" delayed
+    (interp (IdV "x") delayedEnv)
   assertEqual "primera demanda" (NumV 5)
-    (interp (IdV "x") delayedEnv)
+    (strict (interp (IdV "x") delayedEnv))
   assertEqual "segunda demanda vuelve a evaluar" (NumV 5)
-    (interp (IdV "x") delayedEnv)
+    (strict (interp (IdV "x") delayedEnv))
   assertEqual "la ligadura no se actualiza" delayed
     (lookupEnv "x" delayedEnv)
-  assertEqual "delay crea una cerradura de expresion" delayed
-    (delay argument [])

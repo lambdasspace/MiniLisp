@@ -5,41 +5,36 @@ import Desugar
 type Env = [(String, ASAValues)]
 
 -- Evaluador perezoso de paso grande. Un parámetro se liga a una cerradura de
--- expresión que conserva el argumento y el ambiente de la llamada. No hay
--- caché: cada demanda vuelve a evaluar la expresión.
+-- expresión que conserva el argumento y el ambiente de la llamada.
 interp :: ASAValues -> Env -> ASAValues
-interp (IdV identifier) env = force (lookupEnv identifier env)
+interp (IdV identifier) env = lookupEnv identifier env
 interp value@(NumV _) _ = value
 interp value@(BooleanV _) _ = value
 interp (AddV left right) env =
-  NumV (numN (interp left env) + numN (interp right env))
+  NumV (numN (strict (interp left env)) + numN (strict (interp right env)))
 interp (SubV left right) env =
-  NumV (max 0 (numN (interp left env) - numN (interp right env)))
+  NumV (max 0 (numN (strict (interp left env)) - numN (strict (interp right env))))
 interp (NotV expression) env =
-  BooleanV (not (boolN (interp expression env)))
+  BooleanV (not (boolN (strict (interp expression env))))
 interp (If0V condition consequent alternative) env =
-  case interp condition env of
-    NumV 0 -> interp consequent env
-    NumV _ -> interp alternative env
-    result -> error ("Se esperaba un número en if0: " ++ show result)
+  interpIf0 (strict (interp condition env)) consequent alternative env
 interp (FunV parameter body) env = ClosureV parameter body env
 interp closure@(ClosureV _ _ _) _ = closure
-interp expressionClosure@(ExprV _ _) _ = force expressionClosure
+interp expressionClosure@(ExprV _ _) _ = expressionClosure
 interp (AppV function argument) callerEnv =
-  case interp function callerEnv of
-    ClosureV parameter body definitionEnv ->
-      interp body ((parameter, delay argument callerEnv) : definitionEnv)
-    result -> error ("Se esperaba una cerradura: " ++ show result)
+  interpApp (strict (interp function callerEnv)) argument callerEnv
 
-delay :: ASAValues -> Env -> ASAValues
-delay = ExprV
+interpIf0 :: ASAValues -> ASAValues -> ASAValues -> Env -> ASAValues
+interpIf0 (NumV 0) consequent _ env = interp consequent env
+interpIf0 (NumV _) _ alternative env = interp alternative env
 
-force :: ASAValues -> ASAValues
-force (ExprV expression savedEnv) = interp expression savedEnv
-force value = value
+interpApp :: ASAValues -> ASAValues -> Env -> ASAValues
+interpApp (ClosureV parameter body definitionEnv) argument callerEnv =
+  interp body ((parameter, ExprV argument callerEnv) : definitionEnv)
 
-runProgram :: ASA -> ASAValues
-runProgram e = interp (desugarV e) []
+strict :: ASAValues -> ASAValues
+strict (ExprV expression savedEnv) = strict (interp expression savedEnv)
+strict value = value
 
 lookupEnv :: String -> Env -> ASAValues
 lookupEnv i [] = error ("Variable " ++ i ++ " not found")
@@ -49,22 +44,16 @@ lookupEnv i ((j, v) : env)
 
 numN :: ASAValues -> Int
 numN (NumV n) = n
-numN expression = error ("Se esperaba un número: " ++ show expression)
 
 boolN :: ASAValues -> Bool
 boolN (BooleanV b) = b
 boolN (NumV _) = True
-boolN expression =
-  error ("Se esperaba un booleano o número: " ++ show expression)
 
 closureP :: ASAValues -> String
 closureP (ClosureV p _ _) = p
-closureP expression = error ("Se esperaba una cerradura: " ++ show expression)
 
 closureC :: ASAValues -> ASAValues
 closureC (ClosureV _ c _) = c
-closureC expression = error ("Se esperaba una cerradura: " ++ show expression)
 
 closureE :: ASAValues -> Env
 closureE (ClosureV _ _ e) = e
-closureE expression = error ("Se esperaba una cerradura: " ++ show expression)
