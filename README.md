@@ -2,7 +2,7 @@
 
 Manuel Soto Romero
 
-This repository documents the incremental design and implementation of **MiniLisp**, a pedagogical programming language conceived to explore fundamental concepts in programming language theory. A version may add expressive capabilities or provide a different semantic mechanism for an existing language. For example, v6 keeps the language of v5.1 but replaces its direct evaluator with a CEK machine.
+This repository documents the incremental design and implementation of **MiniLisp**, a pedagogical programming language conceived to explore fundamental concepts in programming language theory. A version may add expressive capabilities or provide a different semantic mechanism for an existing language.
 
 The project follows the pedagogical approach of the **first edition of *Programming Languages: Application and Interpretation* (PLAI)** by Shriram Krishnamurthi, while using **Haskell** as the host language. The choice of Haskell provides a precise functional framework for expressing interpreters and semantic definitions, reinforcing theoretical connections to substitution, evaluation strategies, and higher-order functions.
 
@@ -28,17 +28,16 @@ MiniLisp uses **natural operational semantics** as its default executable model:
 
 * [MiniLisp v4.1](MINILISP04/VERSION01): Big-step substitution semantics with deferred function arguments.
 * [MiniLisp v4.2](MINILISP04/VERSION02): A deliberately naive big-step environment model that stores raw argument expressions and therefore exhibits accidental dynamic scope.
-* [MiniLisp v4.3](MINILISP04/VERSION03): Big-step evaluation with expression closures without caching, static scope, `if0`, and strictness points.
+* [MiniLisp v4.3](MINILISP04/VERSION03): Big-step evaluation with expression closures, static scope, `if0`, and strictness points.
 
 ### Recursion
 
-* [MiniLisp v5.1](MINILISP05/version01): Recursive definitions via `letrec`, implemented directly with recursive environments and eager evaluation.
-* [MiniLisp v5.2](MINILISP05/version02): Recursive definitions via `letrec`, implemented through the Y Combinator with deferred evaluation without memoization.
-* [MiniLisp v5.3](MINILISP05/version03): Recursive definitions via `letrec`, implemented through the Z Combinator with eager evaluation.
+* [MiniLisp v5.1](MINILISP05/version01): Recursive definitions via `letrec`, desugared through the Y Combinator under lazy evaluation.
+* [MiniLisp v5.2](MINILISP05/version02): Recursive definitions via `letrec`, desugared through the Z Combinator under eager evaluation.
 
 ### Explicit Control
 
-* [MiniLisp v6](MINILISP06): A CEK machine over the eager, statically scoped language of v5.1. Its control stack is internal and cannot be manipulated by MiniLisp programs.
+* [MiniLisp v6](MINILISP06): A CEK machine for an eager, statically scoped MiniLisp. Its control stack is internal and cannot be manipulated by MiniLisp programs.
 
 ### Continuations
 

@@ -2,70 +2,58 @@ module Desugar where
 
 import Grammars
 
--- AST "desugared"
 data ASA
   = Id String
   | Num Int
   | Boolean Bool
   | Add ASA ASA
   | Sub ASA ASA
-  | Mul ASA ASA        
-  | Leq ASA ASA        
   | Not ASA
-  | If0 ASA ASA ASA    
-  | If  ASA ASA ASA    
+  | If0 ASA ASA ASA
   | Fun String ASA
-  | LetRec String ASA ASA
   | App ASA ASA
-  deriving (Show)
+  deriving (Eq, Show)
 
--- AST ejecutable para el evaluador directo de paso grande
 data ASAValues
   = IdV String
   | NumV Int
   | BooleanV Bool
   | AddV ASAValues ASAValues
   | SubV ASAValues ASAValues
-  | MulV ASAValues ASAValues
-  | LeqV ASAValues ASAValues
   | NotV ASAValues
   | If0V ASAValues ASAValues ASAValues
-  | IfV  ASAValues ASAValues ASAValues
   | FunV String ASAValues
+  | ExprV ASAValues [(String, ASAValues)]
   | ClosureV String ASAValues [(String, ASAValues)]
-  | LetRecV String ASAValues ASAValues
   | AppV ASAValues ASAValues
-  deriving(Show)
+  deriving (Eq, Show)
 
--- Traducción de la sintaxis superficial (SASA del parser) al ASA
 desugar :: SASA -> ASA
-desugar (IdS i)              = Id i
-desugar (NumS n)             = Num n
-desugar (BooleanS b)         = Boolean b
-desugar (AddS i d)           = Add (desugar i) (desugar d)
-desugar (SubS i d)           = Sub (desugar i) (desugar d)
-desugar (MulS i d)           = Mul (desugar i) (desugar d)
-desugar (LeqS i d)           = Leq (desugar i) (desugar d)
-desugar (NotS e)             = Not (desugar e)
-desugar (LetS p v c)         = App (Fun p (desugar c)) (desugar v)
-desugar (LetRecS p v c)      = LetRec p (desugar v) (desugar c)
-desugar (If0S c t e)         = If0 (desugar c) (desugar t) (desugar e)
-desugar (IfS  c t e)         = If  (desugar c) (desugar t) (desugar e)
-desugar (FunS p c)           = Fun p (desugar c)
-desugar (AppS f a)           = App (desugar f) (desugar a)
+desugar (IdS identifier) = Id identifier
+desugar (NumS number) = Num number
+desugar (BooleanS boolean) = Boolean boolean
+desugar (AddS left right) = Add (desugar left) (desugar right)
+desugar (SubS left right) = Sub (desugar left) (desugar right)
+desugar (NotS expression) = Not (desugar expression)
+desugar (LetS parameter argument body) =
+  App (Fun parameter (desugar body)) (desugar argument)
+desugar (LetRecS name definition body) =
+  desugar (LetS name (AppS (IdS "Y") (FunS name definition)) body)
+desugar (If0S condition consequent alternative) =
+  If0 (desugar condition) (desugar consequent) (desugar alternative)
+desugar (FunS parameter body) = Fun parameter (desugar body)
+desugar (AppS function argument) =
+  App (desugar function) (desugar argument)
 
--- Traducción de ASA (ya desugared) a ASAValues (forma lista para evaluar)
 desugarV :: ASA -> ASAValues
-desugarV (Id i)              = IdV i
-desugarV (Num n)             = NumV n
-desugarV (Boolean b)         = BooleanV b
-desugarV (Add i d)           = AddV (desugarV i) (desugarV d)
-desugarV (Sub i d)           = SubV (desugarV i) (desugarV d)
-desugarV (Mul i d)           = MulV (desugarV i) (desugarV d)
-desugarV (Leq i d)           = LeqV (desugarV i) (desugarV d)
-desugarV (Not e)             = NotV (desugarV e)
-desugarV (If0 c t e)         = If0V (desugarV c) (desugarV t) (desugarV e)
-desugarV (If  c t e)         = IfV  (desugarV c) (desugarV t) (desugarV e)
-desugarV (Fun p c)           = FunV p (desugarV c)
-desugarV (LetRec p v c)      = LetRecV p (desugarV v) (desugarV c)
-desugarV (App f a)           = AppV (desugarV f) (desugarV a)
+desugarV (Id identifier) = IdV identifier
+desugarV (Num number) = NumV number
+desugarV (Boolean boolean) = BooleanV boolean
+desugarV (Add left right) = AddV (desugarV left) (desugarV right)
+desugarV (Sub left right) = SubV (desugarV left) (desugarV right)
+desugarV (Not expression) = NotV (desugarV expression)
+desugarV (If0 condition consequent alternative) =
+  If0V (desugarV condition) (desugarV consequent) (desugarV alternative)
+desugarV (Fun parameter body) = FunV parameter (desugarV body)
+desugarV (App function argument) =
+  AppV (desugarV function) (desugarV argument)

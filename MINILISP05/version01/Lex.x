@@ -21,14 +21,11 @@ tokens :-
   \)                    { \_ -> TokenPC }
   \+                    { \_ -> TokenSuma }
   \-                    { \_ -> TokenResta }
-  \*                    { \_ -> TokenMult }
-  "<="                  { \_ -> TokenLeq }
   not                   { \_ -> TokenNot }
   letrec                { \_ -> TokenLetRec }
   let                   { \_ -> TokenLet }
   lambda                { \_ -> TokenLambda }
   if0                   { \_ -> TokenIf0 }
-  if                    { \_ -> TokenIf }
 
   "#t"                  { \_ -> TokenBool True }
   "#f"                  { \_ -> TokenBool False }
@@ -50,15 +47,12 @@ data Token
   | TokenBool Bool
   | TokenSuma
   | TokenResta
-  | TokenMult
-  | TokenLeq
   | TokenNot
   | TokenPA
   | TokenPC
   | TokenLet
   | TokenLetRec
   | TokenIf0
-  | TokenIf
   | TokenLambda
   deriving (Show)
 

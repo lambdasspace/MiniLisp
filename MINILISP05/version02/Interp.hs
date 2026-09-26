@@ -4,44 +4,41 @@ import Desugar
 
 type Env = [(String, ASAValues)]
 
--- Evaluador directo (paso grande) con evaluación diferida sin almacenamiento.
--- Los argumentos se guardan como ExprV junto con el ambiente del sitio de
--- llamada y se fuerzan cada vez que se consultan.
+-- Evaluador ansioso de paso grande con alcance estático.
 interp :: ASAValues -> Env -> ASAValues
-interp (IdV i) env = force (lookupEnv i env)
-interp n@(NumV _) _ = n
-interp b@(BooleanV _) _ = b
-interp (AddV l r) env = NumV (expectNum (interp l env) + expectNum (interp r env))
-interp (SubV l r) env = NumV (expectNum (interp l env) - expectNum (interp r env))
-interp (MulV l r) env = NumV (expectNum (interp l env) * expectNum (interp r env))
-interp (LeqV l r) env = BooleanV (expectNum (interp l env) <= expectNum (interp r env))
-interp (NotV e) env = BooleanV (not (expectBool (interp e env)))
-interp (If0V c t e) env =
-  if expectNum (interp c env) == 0 then interp t env else interp e env
-interp (IfV c t e) env =
-  if expectBool (interp c env) then interp t env else interp e env
-interp (FunV p body) env = ClosureV p body env
-interp (AppV f a) env =
-  case interp f env of
-    ClosureV p body definitionEnv ->
-      interp body ((p, ExprV a env) : definitionEnv)
-    _ -> error "Application expects a function"
-interp (ExprV e savedEnv) _ = interp e savedEnv
+interp (IdV identifier) env = lookupEnv identifier env
+interp value@(NumV _) _ = value
+interp value@(BooleanV _) _ = value
+interp (AddV left right) env =
+  NumV (numN (interp left env) + numN (interp right env))
+interp (SubV left right) env =
+  NumV (max 0 (numN (interp left env) - numN (interp right env)))
+interp (NotV expression) env =
+  BooleanV (not (boolN (interp expression env)))
+interp (If0V condition consequent alternative) env =
+  interpIf0 (interp condition env) consequent alternative env
+interp (FunV parameter body) env = ClosureV parameter body env
+interp closure@(ClosureV _ _ _) _ = closure
+interp (AppV function argument) env =
+  interpApp (interp function env) (interp argument env)
 
-force :: ASAValues -> ASAValues
-force (ExprV e savedEnv) = interp e savedEnv
-force value = value
+interpIf0 :: ASAValues -> ASAValues -> ASAValues -> Env -> ASAValues
+interpIf0 (NumV 0) consequent _ env = interp consequent env
+interpIf0 (NumV _) _ alternative env = interp alternative env
+
+interpApp :: ASAValues -> ASAValues -> ASAValues
+interpApp (ClosureV parameter body definitionEnv) argument =
+  interp body ((parameter, argument) : definitionEnv)
 
 lookupEnv :: String -> Env -> ASAValues
-lookupEnv i [] = error ("Variable " ++ i ++ " not found")
-lookupEnv i ((j, value) : env)
-  | i == j = value
-  | otherwise = lookupEnv i env
+lookupEnv identifier ((name, value) : env)
+  | identifier == name = value
+  | otherwise = lookupEnv identifier env
+lookupEnv identifier [] =
+  error ("Variable libre: " ++ identifier)
 
-expectNum :: ASAValues -> Int
-expectNum (NumV n) = n
-expectNum _ = error "Numeric operation expects numbers"
+numN :: ASAValues -> Int
+numN (NumV number) = number
 
-expectBool :: ASAValues -> Bool
-expectBool (BooleanV b) = b
-expectBool _ = error "Boolean operation expects booleans"
+boolN :: ASAValues -> Bool
+boolN (BooleanV boolean) = boolean

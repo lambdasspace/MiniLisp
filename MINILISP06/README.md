@@ -1,7 +1,7 @@
 # MiniLisp v6: máquina abstracta CEK
 
-Esta versión conserva la sintaxis, la evaluación ansiosa, el alcance estático
-y los ambientes recursivos de MiniLisp v5.1. La diferencia está en el
+Esta versión utiliza evaluación ansiosa, alcance estático y ambientes
+recursivos. La diferencia está en el
 mecanismo de ejecución: `Interp.hs` reemplaza el evaluador directo por una
 máquina de transiciones pequeñas.
 
@@ -11,7 +11,7 @@ continuaciones de primera clase y `let/cc` pertenecen a MiniLisp v7.
 
 ## Componentes
 
-- `Lex.x` y `Grammars.y`: sintaxis superficial de MiniLisp v5.1.
+- `Lex.x` y `Grammars.y`: sintaxis superficial de esta versión.
 - `Desugar.hs`: núcleo ejecutable. `let` permanece explícito para corresponder
   con el marco `LetK` de la máquina.
 - `Interp.hs`: estados, marcos, transición `step`, trazas y ejecución completa.
@@ -25,7 +25,7 @@ continuaciones de primera clase y `let/cc` pertenecen a MiniLisp v7.
 - `execute`: ejecuta desde una expresión y un ambiente.
 - `runMachine`: ejecuta un programa cerrado.
 - `interp`: conserva la interfaz del evaluador directo para comparar
-  resultados con MiniLisp v5.1.
+  resultados con el evaluador directo.
 
 Desde `MiniLisp.hs`, `runSource` recibe código fuente y devuelve un resultado,
 mientras que `printTrace` imprime sus estados.
